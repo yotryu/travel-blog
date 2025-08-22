@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { goto, invalidateAll } from '$app/navigation';
+    import { goto } from '$app/navigation';
     import { fade } from 'svelte/transition';
+	import { resolve } from '$app/paths';
 	
 	const fadeIn = {
 		delay: 100,
@@ -30,9 +31,9 @@
         <div class="post-container">
 		{#each postNavData.collectionPosts as post}
 			<div class="post-div">
-				<button class="post-button" onclick={() => navToPage(`/blog/post/${post.id}`)}>
+				<button class="post-button" data-sveltekit-reload >
 					<img class="postbg" src={post.images[0].navSrc} alt={post.title} />
-					<p class="posttitle">{post.title}</p>
+					<a class="posttitle" href={resolve(`/blog/post/${post.id}`)}>{post.title}</a>
 				</button>
 			</div>
         {/each}

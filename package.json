@@ -11,7 +11,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"predeploy": "npm run build",
-		"deploy": "gh-pages -d build",
+		"deploy": "gh-pages -d build -t",
 		"gen-collections": "node ./scripts/gen-collections.ts",
 		"gen-smaller-images": "node ./scripts/gen-small-images.ts --inputDir=./images --widths=1000,200"
 	},
