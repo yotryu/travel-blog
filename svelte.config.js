@@ -21,6 +21,9 @@ const config = {
 		adapter: adapter(),
 		prerender: {
 			entries: ["/", ...allPosts]
+		},
+		paths: {
+			base: process.argv.includes('dev') ? '' : process.env.BASE_PATH
 		}
 	}
 };
