@@ -23,7 +23,7 @@ const config = {
 			entries: ["/", ...allPosts]
 		},
 		paths: {
-			base: process.argv.includes('dev') ? '' : process.env.BASE_PATH
+			base: process.argv.includes('dev') ? '' : "yotryu.github.io/travel-blog"
 		}
 	}
 };
