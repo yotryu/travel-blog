@@ -10,6 +10,8 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"predeploy": "npm run build",
+		"deploy": "gh-pages -d build",
 		"gen-collections": "node ./scripts/gen-collections.ts",
 		"gen-smaller-images": "node ./scripts/gen-small-images.ts --inputDir=./images --widths=1000,200"
 	},
@@ -17,6 +19,7 @@
 		"@sveltejs/adapter-static": "^3.0.8",
 		"@sveltejs/kit": "^2.22.0",
 		"@sveltejs/vite-plugin-svelte": "^6.0.0",
+		"gh-pages": "^6.3.0",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
 		"typescript": "^5.0.0",
