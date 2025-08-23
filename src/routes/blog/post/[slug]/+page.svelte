@@ -47,7 +47,7 @@
 {#if isExpanded}
 <div class="overlay" onclickcapture={() => isExpanded = false}>
     <div transition:fly="{flyData}" class="{containerClass} {expandedClass}">
-        <div use:swipe={() => ({timeframe: 300, minSwipeDistance: 100})} onswipe={swipeHandler}>
+        <!-- <div use:swipe={() => ({timeframe: 300, minSwipeDistance: 100})} onswipe={swipeHandler}> -->
             <div class="content">
             {#each data.post.contentParagraphs as para}
                 <p>{para}</p>
@@ -77,7 +77,7 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+        <!-- </div> -->
     </div>
 </div>
 {:else}
