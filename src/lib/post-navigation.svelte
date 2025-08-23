@@ -70,9 +70,13 @@
 	.small {
         font-size: smaller;
         margin-bottom: 0.5em;
-		margin-left: 1.3em;
+		margin-left: 1em;
+		margin-right: 1em;
+		padding: 4px;
 		cursor: pointer;
 		text-shadow: 0 0 4px #000;
+		border-radius: 4px;
+		background-color: #0004;
     }
 
     .post-container {
@@ -82,17 +86,16 @@
     .postbg {
         width: 100%;
         object-fit: cover;
-        display: flex;
-        overflow: hidden;
         filter: brightness(0.5);
     }
 
     .posttitle {
         position: absolute;
         color: beige;
-		padding-top: 2px;
-		padding-left: 1em;
+		padding-top: 10px;
+		padding-left: 10px;
 		font-family: Fira-Regular;
+		text-decoration: none;
     }
 
 	.expanded {
@@ -112,6 +115,8 @@
         height:50px;
         overflow:hidden;
         display:flex;
+		margin: auto;
+		text-align: center;
         justify-content: left;
         vertical-align: middle;
 		cursor: pointer;

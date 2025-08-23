@@ -9,7 +9,8 @@ interface Collection {
 
 interface PostImage {
     src: string;
-    size: number;
+    collageSrc: string;
+    navSrc: string;
 }
 
 interface Post {

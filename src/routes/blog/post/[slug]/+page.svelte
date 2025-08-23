@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
     import { fly } from 'svelte/transition';
+    import { resolve } from '$app/paths';
     import { swipe, type SwipeCustomEvent } from 'svelte-gestures';
     import ImageCollage from '$lib/image-collage.svelte';
     import PostNavigation from '$lib/post-navigation.svelte';
@@ -13,7 +14,7 @@
     let edgeClass = $derived(isPortrait ? "edge-container-portrait" : "edge-container");
     let isExpanded = $state(false);
     let expandedClass = $derived(isExpanded ? (isPortrait ? "expanded-portrait" : "expanded") : "");
-    let expandArrow = $derived(isPortrait ? "^" : "<");
+    let expandArrow = $derived(isPortrait ? "↑" : "←");
 
     function swipeHandler(event: SwipeCustomEvent)
     {
@@ -21,14 +22,17 @@
         {
             isExpanded = true;
         }
-        else if (isExpaned && event.detail.direction == 'bottom')
-        {
-            isExpanded = false;
-        }
+        // else if (isExpanded && event.detail.direction == 'bottom')
+        // {
+        //     isExpanded = false;
+        // }
     }
 
     let { data }: PageProps = $props();
     let images = $derived(data.post.images);
+    let thisIndex = $derived(data.collectionPosts.findIndex(i => i.id == data.post.id));
+    let prevPost = $derived(thisIndex > 0 ? data.collectionPosts[thisIndex - 1] : null);
+    let nextPost = $derived(thisIndex < data.collectionPosts.length - 1 && thisIndex >= 0 ? data.collectionPosts[thisIndex + 1] : null);
 </script>
 
 <svelte:window bind:innerWidth bind:innerHeight />
@@ -44,9 +48,35 @@
 <div class="overlay" onclickcapture={() => isExpanded = false}>
     <div transition:fly="{flyData}" class="{containerClass} {expandedClass}">
         <div use:swipe={() => ({timeframe: 300, minSwipeDistance: 100})} onswipe={swipeHandler}>
-        {#each data.post.contentParagraphs as para}
-            <p>{para}</p>
-        {/each}
+            <div class="content">
+            {#each data.post.contentParagraphs as para}
+                <p>{para}</p>
+            {/each}
+            </div>
+            <div data-sveltekit-reload>
+                <table style="width:100%; margin-top:8px;">
+                    <tbody>
+                        <tr>
+                            <td style="width:50%">
+                                {#if prevPost != null}
+                                <button class="nav-button-prev" data-sveltekit-reload >
+                                    <img class="nav-bg" src={prevPost.images[0].navSrc} alt="prev"/>
+                                    <a class="nav-title-prev" href={resolve(`/blog/post/${prevPost.id}`)}>&lt; Previous<br>{prevPost.title}</a>
+                                </button>
+                                {/if}
+                            </td>
+                            <td style="width:50%; text-align:right;">
+                                {#if nextPost != null}
+                                <button class="nav-button-next" data-sveltekit-reload >
+                                    <img class="nav-bg" src={nextPost.images[0].navSrc} alt="prev"/>
+                                    <a class="nav-title-next" href={resolve(`/blog/post/${nextPost.id}`)}>Next &gt;<br>{nextPost.title}</a>
+                                </button>
+                                {/if}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -99,7 +129,7 @@
         left: 0;
         color: beige;
         margin-left: 1em;
-        margin-top: 2em;
+        margin-top: 2.5em;
     }
 
     .title {
@@ -138,7 +168,7 @@
     }
 
     .expanded-portrait {
-        max-height: 75vh;
+        max-height: 70vh;
     }
 
     .edge-container,
@@ -157,5 +187,76 @@
     .edge-container-portrait {
         width: unset;
         height: 30px;
+    }
+
+    .content {
+        overflow: scroll;
+        /* position: relative; */
+        /* bottom: 100px; */
+        /* top: 0; */
+        /* bottom: 3em; */
+        padding-right: 1em;
+        border-bottom: 1px solid beige;
+    }
+
+    .content-bottom {
+        position: fixed;
+        bottom: 1em;
+    }
+
+    .left-align {
+        text-align: left;
+    }
+
+    .right-align {
+        text-align: right;
+        width: 100%;
+    }
+
+    .nav-button-prev,
+    .nav-button-next {
+		border: none;
+		background: none;
+		width:100%;
+        height:50px;
+        overflow:hidden;
+        display:flex;
+		/* margin: auto; */
+        padding: 0;
+		text-align: left;
+        justify-content: left;
+        vertical-align: middle;
+		cursor: pointer;
+	}
+
+    .nav-button-next {
+        text-align: right;
+        justify-content: right;
+    }
+
+    .nav-title-prev,
+    .nav-title-next {
+        position: absolute;
+        color: beige;
+		padding-top: 10px;
+		padding-left: 10px;
+		font-family: Fira-Regular;
+		text-decoration: none;
+    }
+
+    .nav-title-next {
+        padding-right: 10px;
+    }
+
+    .nav-bg {
+        width: 100%;
+        object-fit: cover;
+        filter: brightness(0.5);
+    }
+
+    a {
+        text-decoration: none;
+        color: beige;
+        font-family: Fira-Regular;
     }
 </style>
