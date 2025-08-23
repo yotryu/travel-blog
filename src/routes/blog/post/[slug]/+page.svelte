@@ -189,11 +189,12 @@
         color: grey;
         cursor: pointer;
         font-family: Fira-Regular;
+        font-size: large;
     }
 
     .edge-container-portrait {
         width: unset;
-        height: 50px;
+        height: 40px;
     }
 
     .content {
