@@ -9,11 +9,12 @@
     let innerWidth = $state(0);
     let innerHeight = $state(0);
     let isPortrait = $derived(innerWidth <= innerHeight);
+    let isUltrawide = $derived(innerWidth / innerHeight >= 2);
     let flyData = $derived(isPortrait ? { duration: 200, y: 100, opactiy: 0 } : { duration: 200, x: 100, opacity: 0 });
     let containerClass = $derived(isPortrait ? "content-container-portrait" : "content-container");
     let edgeClass = $derived(isPortrait ? "edge-container-portrait" : "edge-container");
     let isExpanded = $state(false);
-    let expandedClass = $derived(isExpanded ? (isPortrait ? "expanded-portrait" : "expanded") : "");
+    let expandedClass = $derived(isExpanded ? (isPortrait ? "expanded-portrait" : (isUltrawide ? "expanded-ultrawide" : "expanded")) : "");
     let expandArrow = $derived(isPortrait ? "↑" : "←");
 
     function swipeHandler(event: SwipeCustomEvent)
@@ -164,6 +165,11 @@
 
     .expanded {
         left: 70%;
+        right: 0;
+    }
+
+    .expanded-ultrawide {
+        left: 60%;
         right: 0;
     }
 
