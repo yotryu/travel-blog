@@ -181,6 +181,7 @@
     .edge-container-portrait {
         right: 0;
         width: 30px;
+        background: #111C;
         padding: unset;
         display: flex;
         justify-content: center;
@@ -192,7 +193,7 @@
 
     .edge-container-portrait {
         width: unset;
-        height: 30px;
+        height: 50px;
     }
 
     .content {
