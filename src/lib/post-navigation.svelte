@@ -85,6 +85,7 @@
 
     .postbg {
         width: 100%;
+		border-radius: 6px;
         object-fit: cover;
         filter: brightness(0.5);
     }
@@ -110,6 +111,7 @@
 
 	.post-button {
 		border: none;
+		border-radius: 4px;
 		background: none;
 		width:100%;
         height:50px;

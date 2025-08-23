@@ -216,6 +216,7 @@
     .nav-button-prev,
     .nav-button-next {
 		border: none;
+        border-radius: 6px;
 		background: none;
 		width:100%;
         height:50px;
