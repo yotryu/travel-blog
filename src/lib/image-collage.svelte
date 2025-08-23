@@ -30,10 +30,17 @@
         ],
         [ // 2 images
             {
-                primaryAspect: "any",
+                primaryAspect: "landscape",
                 images: [
-                    { left: 0, top: 0, right: 50, bottom: 100 }, // 0, 0, 100, 50
-                    { left: 50, top: 0, right: 100, bottom: 100 }, // 0, 50, 100, 100
+                    { left: 0, top: 0, right: 50, bottom: 100 },
+                    { left: 50, top: 0, right: 100, bottom: 100 },
+                ]
+            },
+            {
+                primaryAspect: "portrait",
+                images: [
+                    { left: 0, top: 0, right: 100, bottom: 50 },
+                    { left: 0, top: 50, right: 100, bottom: 100 },
                 ]
             }
         ],
@@ -41,17 +48,17 @@
             {
                 primaryAspect: "landscape",
                 images: [
-                    { left: 0, top: 0, right: 60, bottom: 100 }, // 0, 0, 100, 60
-                    { left: 60, top: 0, right: 100, bottom: 50 }, // 0, 60, 50, 100
-                    { left: 60, top: 50, right: 100, bottom: 100 } // 50, 60, 100, 100
+                    { left: 0, top: 0, right: 60, bottom: 100 },
+                    { left: 60, top: 0, right: 100, bottom: 50 },
+                    { left: 60, top: 50, right: 100, bottom: 100 }
                 ]
             },
             {
                 primaryAspect: "portrait",
                 images: [
-                    { left: 0, top: 0, right: 40, bottom: 100 }, // 0, 0, 100, 40
-                    { left: 40, top: 0, right: 100, bottom: 50 }, // 0, 40, 50, 100
-                    { left: 40, top: 50, right: 100, bottom: 100 } // 50, 40, 100, 100
+                    { left: 0, top: 0, right: 100, bottom: 50 },
+                    { left: 0, top: 50, right: 50, bottom: 100 },
+                    { left: 50, top: 50, right: 100, bottom: 100 }
                 ]
             }
         ],
@@ -59,19 +66,19 @@
             {
                 primaryAspect: "landscape",
                 images: [
-                    { left: 0, top: 0, right: 60, bottom: 60 }, // 0, 0, 60, 60
-                    { left: 60, top: 0, right: 100, bottom: 50 }, // 0, 60, 50, 100
-                    { left: 60, top: 50, right: 100, bottom: 100 }, // 50, 60, 100, 100
-                    { left: 0, top: 60, right: 60, bottom: 100 } // 60, 0, 100, 60
+                    { left: 0, top: 0, right: 60, bottom: 60 },
+                    { left: 60, top: 0, right: 100, bottom: 50 },
+                    { left: 60, top: 50, right: 100, bottom: 100 },
+                    { left: 0, top: 60, right: 60, bottom: 100 }
                 ]
             },
             {
                 primaryAspect: "portrait",
                 images: [
-                    { left: 0, top: 0, right: 40, bottom: 100 }, // 0, 0, 100, 40
-                    { left: 40, top: 0, right: 100, bottom: 33 }, // 0, 40, 33, 100
-                    { left: 40, top: 33, right: 100, bottom: 67 }, // 33, 40, 67, 100
-                    { left: 40, top: 67, right: 100, bottom: 100 } // 67, 40, 100, 100
+                    { left: 0, top: 0, right: 100, bottom: 50 },
+                    { left: 0, top: 50, right: 50, bottom: 100 },
+                    { left: 50, top: 50, right: 100, bottom: 75 },
+                    { left: 50, top: 75, right: 100, bottom: 100 }
                 ]
             }
         ],
@@ -85,6 +92,16 @@
                     { left: 0, top: 60, right: 30, bottom: 100 },
                     { left: 30, top: 60, right: 60, bottom: 100 }
                 ]
+            },
+            {
+                primaryAspect: "portrait",
+                images: [
+                    { left: 0, top: 0, right: 100, bottom: 40 },
+                    { left: 0, top: 40, right: 50, bottom: 75 },
+                    { left: 50, top: 65, right: 100, bottom: 100 },
+                    { left: 0, top: 75, right: 50, bottom: 100 },
+                    { left: 50, top: 50, right: 100, bottom: 65 }
+                ]
             }
         ],
         [ // 6 images
@@ -97,6 +114,17 @@
                     { left: 67, top: 60, right: 100, bottom: 100 },
                     { left: 60, top: 0, right: 100, bottom: 30 },
                     { left: 60, top: 30, right: 100, bottom: 60 }
+                ]
+            },
+            {
+                primaryAspect: "portrait",
+                images: [
+                    { left: 0, top: 0, right: 100, bottom: 35 },
+                    { left: 0, top: 85, right: 100, bottom: 100 },
+                    { left: 0, top: 35, right: 50, bottom: 65 },
+                    { left: 50, top: 55, right: 100, bottom: 85 },
+                    { left: 0, top: 65, right: 50, bottom: 85 },
+                    { left: 50, top: 35, right: 100, bottom: 55 }
                 ]
             }
         ],
@@ -112,6 +140,18 @@
                     { left: 67, top: 50, right: 100, bottom: 75 },
                     { left: 67, top: 75, right: 100, bottom: 100 },
                 ]
+            },
+            {
+                primaryAspect: "portrait",
+                images: [
+                    { left: 0, top: 0, right: 100, bottom: 30 },
+                    { left: 0, top: 30, right: 40, bottom: 80 },
+                    { left: 0, top: 80, right: 100, bottom: 100 },
+                    { left: 40, top: 30, right: 70, bottom: 60 },
+                    { left: 70, top: 55, right: 100, bottom: 80 },
+                    { left: 40, top: 60, right: 70, bottom: 80 },
+                    { left: 70, top: 30, right: 100, bottom: 55 },
+                ]
             }
         ],
         [ // 8 images
@@ -126,6 +166,19 @@
                     { left: 67, top: 70, right: 100, bottom: 100 },
                     { left: 50, top: 0, right: 75, bottom: 40 },
                     { left: 75, top: 0, right: 100, bottom: 40 },
+                ]
+            },
+            {
+                primaryAspect: "portrait",
+                images: [
+                    { left: 0, top: 0, right: 100, bottom: 30 },
+                    { left: 0, top: 30, right: 40, bottom: 70 },
+                    { left: 40, top: 30, right: 100, bottom: 50 },
+                    { left: 0, top: 70, right: 40, bottom: 100 },
+                    { left: 40, top: 50, right: 75, bottom: 75 },
+                    { left: 65, top: 75, right: 100, bottom: 100 },
+                    { left: 75, top: 50, right: 100, bottom: 75 },
+                    { left: 40, top: 75, right: 65, bottom: 100 },
                 ]
             }
         ],
@@ -143,6 +196,20 @@
                     { left: 65, top: 65, right: 83, bottom: 100 },
                     { left: 83, top: 65, right: 100, bottom: 100 },
                 ]
+            },
+            {
+                primaryAspect: "portrait",
+                images: [
+                    { left: 0, top: 0, right: 100, bottom: 30 },
+                    { left: 0, top: 30, right: 50, bottom: 50 },
+                    { left: 50, top: 30, right: 100, bottom: 50 },
+                    { left: 0, top: 50, right: 35, bottom: 75 },
+                    { left: 65, top: 50, right: 100, bottom: 75 },
+                    { left: 35, top: 50, right: 65, bottom: 75 },
+                    { left: 30, top: 75, right: 70, bottom: 100 },
+                    { left: 0, top: 75, right: 30, bottom: 100 },
+                    { left: 70, top: 75, right: 100, bottom: 100 },
+                ]
             }
         ]
     ]
@@ -151,7 +218,13 @@
     {
         if (imageCount <= configs.length)
         {
-            return configs[imageCount - 1][0];
+            let config = configs[imageCount - 1].find(i => (isPortrait && (i.primaryAspect == "any" || i.primaryAspect == "portrait"))
+                || (!isPortrait && (i.primaryAspect == "any" || i.primaryAspect == "landscape")));
+
+            if (config != null)
+            {
+                return config;
+            }
         }
         
         return {primaryAspect: "any", images: []};
@@ -164,10 +237,10 @@
     {#if getConfigToUse().images.length > 0}
         {@const config = getConfigToUse()}
         {#each imagesData as imageData, i}
-            {@const left = isPortrait ? config.images[i].top : config.images[i].left}
-            {@const top = isPortrait ? config.images[i].left : config.images[i].top}
-            {@const right = isPortrait ? config.images[i].bottom : config.images[i].right}
-            {@const bottom = isPortrait ? config.images[i].right : config.images[i].bottom}
+            {@const left = config.images[i].left}
+            {@const top = config.images[i].top}
+            {@const right = config.images[i].right}
+            {@const bottom = config.images[i].bottom}
             {@const width = right - left}
             {@const height = bottom - top}
             <button class="image-button" onclick={() => open(imageData.src)} style="position:absolute; left:{left}%; top:{top}%; width:{width}%; height:{height}%; overflow:hidden; display:flex; justify-content: center;">
