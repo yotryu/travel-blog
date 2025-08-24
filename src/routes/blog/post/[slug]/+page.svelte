@@ -164,7 +164,7 @@
     }
 
     .expanded {
-        left: 70%;
+        left: 65%;
         right: 0;
     }
 
