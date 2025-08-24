@@ -1,10 +1,13 @@
 <script lang="ts">
+    import ImageGallery from '$lib/image-gallery.svelte';
+
 	let { imagesData } = $props();
     let imageCount = $derived(imagesData.length);
 
     let innerWidth = $state(0);
     let innerHeight = $state(0);
     let isPortrait = $derived(innerWidth <= innerHeight);
+    let showImageAtIndex = $state(-1);
 
     interface Rect {
         left: number;
@@ -243,18 +246,20 @@
             {@const bottom = config.images[i].bottom}
             {@const width = right - left}
             {@const height = bottom - top}
-            <button class="image-button" onclick={() => open(imageData.src)} style="position:absolute; left:{left}%; top:{top}%; width:{width}%; height:{height}%; min-width:{width}%; min-height:{height}%; overflow:hidden; display:flex; justify-content: center;">
+            <button class="image-button" onclick={() => showImageAtIndex = i} style="position:absolute; left:{left}%; top:{top}%; width:{width}%; height:{height}%; min-width:{width}%; min-height:{height}%; overflow:hidden; display:flex; justify-content: center;">
                 <img src={imageData.collageSrc} alt={imageData.collageSrc} />
             </button>
         {/each}
     {:else if imageCount > 0}
         <div style="width:100%; height:100%; overflow:hidden; display:flex; justify-content: center;">
-            <button class="image-button" onclick={() => open(imagesData[0].src)}>
+            <button class="image-button" onclick={() => showImageAtIndex = 0}>
                 <img src={imagesData[0].collageSrc} alt={imagesData[0].collageSrc} />
             </button>
         </div>
     {/if}
 </div>
+
+<ImageGallery imagesData={imagesData} index={showImageAtIndex} onSelect={(i: number) => showImageAtIndex = i} onDismiss={() => showImageAtIndex = -1} />
 
 <style>
     :global(html), :global(body), .full-height {
