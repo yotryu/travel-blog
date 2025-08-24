@@ -51,6 +51,7 @@ export const load: PageLoad = async ({ fetch, params }) => {
 
 	return {
 		post: json,
+        collection: thisCollection,
         collectionPosts: collectionPosts
 	};
 };

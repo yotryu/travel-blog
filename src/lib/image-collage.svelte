@@ -100,7 +100,7 @@
                     { left: 0, top: 40, right: 50, bottom: 75 },
                     { left: 50, top: 65, right: 100, bottom: 100 },
                     { left: 0, top: 75, right: 50, bottom: 100 },
-                    { left: 50, top: 50, right: 100, bottom: 65 }
+                    { left: 50, top: 40, right: 100, bottom: 65 }
                 ]
             }
         ],

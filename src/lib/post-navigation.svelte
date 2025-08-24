@@ -25,7 +25,7 @@
 </script>
 
 <nav class:expanded={isExpanded}>
-	<p class="small" onclick={() => isExpanded = !isExpanded}>{postNavData.post.collection}</p>
+	<p class="small" onclick={() => isExpanded = !isExpanded}>{postNavData.collection.title}</p>
 	{#if isExpanded}
 	<section in:fade="{fadeIn}" out:fade="{fadeOut}" >
         <div class="post-container">
@@ -54,7 +54,7 @@
 
 	nav {
 		grid-area: nav;
-        width: 200px;
+        width: 220px;
 		/* height: 20px; */
 		position: absolute;
         top: 0;
@@ -87,7 +87,7 @@
         width: 100%;
 		border-radius: 6px;
         object-fit: cover;
-        filter: brightness(0.5);
+        filter: brightness(0.65);
     }
 
     .posttitle {
