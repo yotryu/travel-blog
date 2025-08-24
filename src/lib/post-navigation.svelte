@@ -85,6 +85,7 @@
 
     .postbg {
         width: 100%;
+		height: 100%;
 		border-radius: 6px;
         object-fit: cover;
         filter: brightness(0.65);

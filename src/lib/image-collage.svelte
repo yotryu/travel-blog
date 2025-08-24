@@ -243,7 +243,7 @@
             {@const bottom = config.images[i].bottom}
             {@const width = right - left}
             {@const height = bottom - top}
-            <button class="image-button" onclick={() => open(imageData.src)} style="position:absolute; left:{left}%; top:{top}%; width:{width}%; height:{height}%; overflow:hidden; display:flex; justify-content: center;">
+            <button class="image-button" onclick={() => open(imageData.src)} style="position:absolute; left:{left}%; top:{top}%; width:{width}%; height:{height}%; min-width:{width}%; min-height:{height}%; overflow:hidden; display:flex; justify-content: center;">
                 <img src={imageData.collageSrc} alt={imageData.collageSrc} />
             </button>
         {/each}
@@ -270,6 +270,7 @@
 
     img {
         width: 100%;
+        height: 100%;
         object-fit: cover;
         /* filter: brightness(0.5); */
     }
