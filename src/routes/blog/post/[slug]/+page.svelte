@@ -199,6 +199,7 @@
 
     .content {
         overflow: scroll;
+        scrollbar-width: none;
         /* position: relative; */
         /* bottom: 100px; */
         /* top: 0; */

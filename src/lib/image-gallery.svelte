@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Image from './image.svelte'
 	let { imagesData, index, onSelect, onDismiss } = $props();
     let innerWidth = $state(0);
     let innerHeight = $state(0);
@@ -23,7 +24,7 @@
     {/each}
     </div>
     <div class={mainImageClass}>
-        <img class="main-image-img" src={imagesData[index].src} alt={imagesData[index].src} />
+        <Image clazz="main-image-img" src={imagesData[index].src} />
     </div>
     <div class="close">
         <button class="close-button" onclick={() => onDismiss()}>Close</button>
@@ -44,7 +45,7 @@
         top: 0;
         left: 0;
         z-index: 20;
-        background-color: #000C;
+        background-color: #000D;
     }
 
     .close {
@@ -70,7 +71,7 @@
         font-family: Fira-Regular;
         cursor: pointer;
     }
-
+    
     .image-list,
     .image-list-portrait {
         position: absolute;
@@ -82,6 +83,7 @@
         width: 220px;
         height: calc(100% - 2em);
         overflow: scroll;
+        scrollbar-width: none;
         margin: 1em 0;
         border-right: 1px solid beige;
     }
