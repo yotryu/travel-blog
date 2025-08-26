@@ -239,11 +239,19 @@
 <div class="full-height">
     {#if getConfigToUse().images.length > 0}
         {@const config = getConfigToUse()}
+        {@const scaler = isPortrait ? innerWidth / innerHeight : innerHeight / innerWidth}
+        {@const xScale = isPortrait ? 1 : scaler}
+        {@const yScale = isPortrait ? scaler : 1}
+        {@const paddingSize = 0.3}
         {#each imagesData as imageData, i}
-            {@const left = config.images[i].left}
-            {@const top = config.images[i].top}
-            {@const right = config.images[i].right}
-            {@const bottom = config.images[i].bottom}
+            {@const originalLeft = config.images[i].left}
+            {@const originalTop = config.images[i].top}
+            {@const originalRight = config.images[i].right}
+            {@const originalBottom = config.images[i].bottom}
+            {@const left = originalLeft + ((originalLeft == 0 || originalLeft == 100 ? 2 : 1) * paddingSize * xScale)}
+            {@const top = originalTop + ((originalTop == 0 || originalTop == 100 ? 2 : 1) * paddingSize * yScale)}
+            {@const right = originalRight - ((originalRight == 0 || originalRight == 100 ? 2 : 1) * paddingSize * xScale)}
+            {@const bottom = originalBottom - ((originalBottom == 0 || originalBottom == 100 ? 2 : 1) * paddingSize * yScale)}
             {@const width = right - left}
             {@const height = bottom - top}
             <button class="image-button" onclick={() => showImageAtIndex = i} style="position:absolute; left:{left}%; top:{top}%; width:{width}%; height:{height}%; min-width:{width}%; min-height:{height}%; overflow:hidden; display:flex; justify-content: center;">
@@ -271,12 +279,14 @@
         display: flex;
         flex-flow: column;
         height: 100%;
+        background-color: #FFF;
     }
 
     img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        background-color: #777;
         /* filter: brightness(0.5); */
     }
 
