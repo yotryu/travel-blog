@@ -35,6 +35,16 @@ export const load: PageLoad = async ({ fetch, params }) => {
     let allCollections = await allCollectionsData.json() as Collection[];
     let thisCollection = allCollections.find(i => i.id == json.collection);
 
+    if (!thisCollection)
+    {
+        thisCollection = {
+            id: "unknown",
+            posts: [],
+            title: "Unknown",
+            parent: ""
+        };
+    }
+
     let collectionPosts: Post[] = [];
     let postPromises: Promise<Response>[] = [];
 
@@ -48,6 +58,14 @@ export const load: PageLoad = async ({ fetch, params }) => {
     });
 
     await Promise.all(postPromises);
+
+    collectionPosts = collectionPosts.sort((a, b) =>
+    {
+        let ia = thisCollection.posts.findIndex(i => i == a.id);
+        let ib = thisCollection.posts.findIndex(i => i == b.id);
+
+        return ia > ib ? 1 : ib > ia ? -1 : 0;
+    });
 
 	return {
 		post: json,

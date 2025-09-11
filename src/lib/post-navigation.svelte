@@ -33,7 +33,7 @@
 			<div class="post-div">
 				<button class="post-button" data-sveltekit-reload >
 					<img class="postbg" src={post.images[0].navSrc} alt={post.title} />
-					<a class="posttitle" href={resolve(`/blog/post/${post.id}`)}>{post.title}</a>
+					<a class="posttitle" href={resolve(`/post/${post.id}`)}>{post.title}</a>
 				</button>
 			</div>
         {/each}

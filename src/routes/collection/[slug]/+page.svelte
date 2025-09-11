@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
-    import { fly } from 'svelte/transition';
+    import { fade, fly } from 'svelte/transition';
+    import { goto } from '$app/navigation';
     import { resolve } from '$app/paths';
     import { swipe, type SwipeCustomEvent } from 'svelte-gestures';
     import ImageCollage from '$lib/image-collage.svelte';
@@ -10,81 +11,30 @@
     let innerHeight = $state(0);
     let isPortrait = $derived(innerWidth <= innerHeight);
     let isUltrawide = $derived(innerWidth / innerHeight >= 2);
-    let flyData = $derived(isPortrait ? { duration: 200, y: 100, opactiy: 0 } : { duration: 200, x: 100, opacity: 0 });
-    let containerClass = $derived(isPortrait ? "content-container-portrait" : "content-container");
-    let edgeClass = $derived(isPortrait ? "edge-container-portrait" : "edge-container");
-    let isExpanded = $state(false);
-    let expandedClass = $derived(isExpanded ? (isPortrait ? "expanded-portrait" : (isUltrawide ? "expanded-ultrawide" : "expanded")) : "");
-    let expandArrow = $derived(isPortrait ? "↑" : "←");
-
-    function swipeHandler(event: SwipeCustomEvent)
-    {
-        if (!isExpanded && event.detail.direction == 'top')
-        {
-            isExpanded = true;
-        }
-        // else if (isExpanded && event.detail.direction == 'bottom')
-        // {
-        //     isExpanded = false;
-        // }
-    }
+    let postClass = $derived(isPortrait ? "image-button-portrait" : "image-button");
 
     let { data }: PageProps = $props();
-    let images = $derived(data.post.images);
-    let thisIndex = $derived(data.collectionPosts.findIndex(i => i.id == data.post.id));
-    let prevPost = $derived(thisIndex > 0 ? data.collectionPosts[thisIndex - 1] : null);
-    let nextPost = $derived(thisIndex < data.collectionPosts.length - 1 && thisIndex >= 0 ? data.collectionPosts[thisIndex + 1] : null);
+    let hoverIndex = $state(-1);
 </script>
 
 <svelte:window bind:innerWidth bind:innerHeight />
 
-<ImageCollage imagesData={images}/>
+{#if data.collection}
 
-<div class="header">
-    <h1 class="title">{data.post.title}</h1>
-    <p class="small">{data.post.date}</p>
+<div class="overlay">
+    {#each data.collectionPosts as post, i}
+        <button class={postClass} onmouseenter={() => hoverIndex = i} onclick={() => goto(resolve(`/post/${post.id}`))}>
+            <img src={post.images[0].src} alt={post.images[0].src} />
+            <h3 class="title overlay-bottom" transition:fade>{post.title}</h3>
+        </button>
+    {/each}
 </div>
-
-{#if isExpanded}
-<div class="overlay" onclickcapture={() => isExpanded = false}>
-    <div transition:fly="{flyData}" class="{containerClass} {expandedClass}">
-        <!-- <div use:swipe={() => ({timeframe: 300, minSwipeDistance: 100})} onswipe={swipeHandler}> -->
-            <div class="content">
-            {#each data.post.contentParagraphs as para}
-                <p>{para}</p>
-            {/each}
-            </div>
-            <div data-sveltekit-reload>
-                <table style="width:100%; margin-top:8px;">
-                    <tbody>
-                        <tr>
-                            <td style="width:50%">
-                                {#if prevPost != null}
-                                <button class="nav-button-prev" data-sveltekit-reload >
-                                    <img class="nav-bg" src={prevPost.images[0].navSrc} alt="prev"/>
-                                    <a class="nav-title-prev" href={resolve(`/blog/post/${prevPost.id}`)}>&lt; Previous<br>{prevPost.title}</a>
-                                </button>
-                                {/if}
-                            </td>
-                            <td style="width:50%; text-align:right;">
-                                {#if nextPost != null}
-                                <button class="nav-button-next" data-sveltekit-reload >
-                                    <img class="nav-bg" src={nextPost.images[0].navSrc} alt="prev"/>
-                                    <a class="nav-title-next" href={resolve(`/blog/post/${nextPost.id}`)}>Next &gt;<br>{nextPost.title}</a>
-                                </button>
-                                {/if}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        <!-- </div> -->
-    </div>
+<div class="header">
+    <h1 class="title">{data.collection.title}</h1>
 </div>
 {:else}
-<div transition:fly="{flyData}" class="{edgeClass}" onclick={() => isExpanded = true}>{expandArrow}</div>
+<div>hello?</div>
 {/if}
-<PostNavigation postNavData={data} />
 
 <style>
     @font-face {
@@ -106,15 +56,51 @@
         position: absolute;
         top: 0;
         left: 0;
-        color: beige;
+        color: #f5f5dc;
+        white-space: nowrap;
+    }
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background-color: #777;
+        /* filter: brightness(0.5); */
+    }
+
+    .image-button, .image-button-portrait {
+        background: none;
+        color: inherit;
+        border: none;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        cursor: pointer;
+        outline: inherit;
+        width: 20%;
+        height: 100%;
+        display: inline-block;
+        position: relative;
+    }
+
+    .image-button-portrait {
+        width: 100%;
+        height: 20%;
+        display: block;
     }
 
     .overlay-bottom {
-        width: 100%;
-        height: 50%;
+        height: 100;
         position: absolute;
-        top: 50%;
+        bottom: 0;
         left: 0;
+        right: 0;
+        padding-left: 1em;
+        padding-top: 0.5em;
+        padding-bottom: 0.5em;
+        color: #f5f5dc;
+        text-shadow: 0 2px 6px #000;
+        background-color: #0007;
     }
 
     .small {
@@ -125,12 +111,12 @@
     }
 
     .header {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         color: beige;
         margin-left: 1em;
-        margin-top: 2.5em;
+        margin-top: 1em;
     }
 
     .title {
@@ -138,6 +124,7 @@
         margin-bottom: 0;
         font-family: Fira-Regular;
         text-shadow: 0 2px 6px #000;
+        text-align: left;
     }
 
     .content-container,
