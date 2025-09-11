@@ -23,7 +23,7 @@
 
 <div class="overlay">
     {#each data.collectionPosts as post, i}
-        <button class={postClass} onmouseenter={() => hoverIndex = i} onclick={() => goto(resolve(`/post/${post.id}`))}>
+        <button class={postClass} onmouseenter={() => hoverIndex = i} onclick={() => goto(resolve(`/post/${post.id}`), {replaceState: true})}>
             <img src={post.images[0].src} alt={post.images[0].src} />
             <h3 class="title overlay-bottom" transition:fade>{post.title}</h3>
         </button>
