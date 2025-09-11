@@ -4,12 +4,14 @@ import adapter from '@sveltejs/adapter-static';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 let allCollections = JSON.parse(fs.readFileSync(import.meta.dirname + "/static/collections/all.json"));
-let allPosts = [];
+let allPostRoutes = [];
+let allCollectionRoutes = [];
 
 allCollections.forEach(i => {
 	i.posts.forEach(p => {
-		allPosts.push(`/blog/post/${p}`);
+		allPostRoutes.push(`/post/${p}`);
 	});
+	allCollectionRoutes.push(`/collection/${i.id}`);
 });
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -20,7 +22,7 @@ const config = {
 	kit: {
 		adapter: adapter(),
 		prerender: {
-			entries: ["/", ...allPosts]
+			entries: ["/", ...allPostRoutes, ...allCollectionRoutes]
 		},
 		paths: {
 			base: process.argv.includes('dev') ? '' : "/travel-blog"
