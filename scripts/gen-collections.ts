@@ -94,5 +94,8 @@ postCollections.forEach(c =>
 // remove unused collections from all
 existingData = existingData.filter(i => postCollections.findIndex(c => i.id == c.id) >= 0);
 
+// sort by collection ID, descending
+existingData = existingData.sort((a, b) => a.id.localeCompare(b.id)).reverse();
+
 // write new all file
 fs.writeFileSync(allFile, JSON.stringify(existingData, null, 4));
