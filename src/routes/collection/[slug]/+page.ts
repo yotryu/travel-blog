@@ -3,6 +3,7 @@ import type { PageLoad } from './$types';
 interface Collection {
     id: string;
     title: string;
+    subtitle: string;
     parent: string;
     posts: string[];
 }

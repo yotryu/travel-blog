@@ -63,7 +63,7 @@
     <div transition:fade class="collection-page">
         <img class="collection-image" src={collection.titleImage} alt={collection.titleImage}/>
         <div class="header">
-            <h1 class="title">{collection.title}</h1>
+            <h1 class="title"><a href={resolve(`/collection/${collection.id}`)}>{collection.title}</a></h1>
             <h3 class="small">{collection.subtitle}</h3>
         </div>
     </div>
@@ -75,6 +75,8 @@
                 {#if selected == i}
                     <div transition:scale class="item-dot-selected"></div>
                 {:else}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div transition:scale class="item-dot tooltip" onclick={() => selected = i}>
                         <span class="tooltiptext">{collection.title}</span>
                     </div>
@@ -257,9 +259,8 @@
 
     .small {
         font-size: medium;
-        margin-bottom: 0.5em;
         margin-top: 0.5em;
-        /* text-shadow: 0 0 4px #000; */
+        text-shadow: 0 0 4px #000;
     }
 
     .header {

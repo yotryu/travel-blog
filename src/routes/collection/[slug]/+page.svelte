@@ -25,12 +25,13 @@
     {#each data.collectionPosts as post, i}
         <button class={postClass} onmouseenter={() => hoverIndex = i} onclick={() => window.location.assign(resolve(`/post/${post.id}`))}>
             <img src={post.images[0].collageSrc} alt={post.images[0].collageSrc} />
-            <h3 class="title overlay-bottom" transition:fade>{post.title}</h3>
+            <h4 class="title overlay-bottom" transition:fade>{post.title}</h4>
         </button>
     {/each}
 </div>
 <div class="header">
     <h1 class="title">{data.collection.title}</h1>
+    <h3 class="small">{data.collection.subtitle}</h3>
 </div>
 {/if}
 
@@ -70,7 +71,7 @@
         background: none;
         color: inherit;
         border: none;
-        padding: 0;
+        padding: 4px 0px 4px 4px;
         margin: 0;
         font: inherit;
         cursor: pointer;
@@ -84,6 +85,7 @@
     .image-button-portrait {
         width: 100%;
         height: 20%;
+        padding: 4px 4px 0px 4px;
         display: block;
     }
 
@@ -95,16 +97,15 @@
         right: 0;
         padding-left: 1em;
         padding-top: 0.5em;
-        padding-bottom: 0.5em;
+        padding-bottom: 0.75em;
         color: #f5f5dc;
         text-shadow: 0 2px 6px #000;
-        background-color: #0007;
+        /* background-color: #0003; */
     }
 
     .small {
-        font-size: smaller;
-        margin-bottom: 0.5em;
-        margin-top: 0;
+        font-size: medium;
+        margin-top: 0.5em;
         text-shadow: 0 0 4px #000;
     }
 
