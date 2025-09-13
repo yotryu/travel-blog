@@ -4,6 +4,7 @@ interface Collection {
     id: string;
     title: string;
     subtitle: string;
+    sortDate: string;
     titleImage: string;
     parent: string;
     posts: string[];
@@ -30,7 +31,7 @@ export const load: PageLoad = async ({ fetch, params }) => {
     let postData = await fetch(path);
     let allCollections = await postData.json() as Collection[];
 
-    allCollections = allCollections.sort((a, b) => a.id.localeCompare(b.id)).reverse();
+    allCollections = allCollections.sort((a, b) => a.sortDate.localeCompare(b.sortDate)).reverse();
 
     return {
         collections: allCollections

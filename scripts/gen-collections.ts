@@ -21,6 +21,7 @@ var walkSync = function(dir, filelist) {
 interface Collection {
     id: string;
     title: string;
+    sortDate: string;
     parent: string;
     posts: string[];
 }
@@ -95,7 +96,7 @@ postCollections.forEach(c =>
 existingData = existingData.filter(i => postCollections.findIndex(c => i.id == c.id) >= 0);
 
 // sort by collection ID, descending
-existingData = existingData.sort((a, b) => a.id.localeCompare(b.id)).reverse();
+existingData = existingData.sort((a, b) => a.sortDate.localeCompare(b.sortDate)).reverse();
 
 // write new all file
 fs.writeFileSync(allFile, JSON.stringify(existingData, null, 4));
