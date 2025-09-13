@@ -3,6 +3,31 @@
     import { crossfade, fade, fly, scale } from 'svelte/transition';
     import { swipe, type SwipeCustomEvent } from 'svelte-gestures';
     import { resolve } from '$app/paths';
+    import { onMount } from 'svelte';
+
+    function getShuffledArray(array: any[], forceFirst: number): any[]
+    {
+        let result = [...array];
+        let addAsFirst = null;
+        if (forceFirst != undefined && forceFirst >= 0 && forceFirst < array.length)
+        {
+            addAsFirst = result.splice(forceFirst, 1);
+        }
+
+        for (var i = result.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = result[i];
+            result[i] = result[j];
+            result[j] = temp;
+        }
+
+        if (addAsFirst)
+        {
+            result = addAsFirst.concat(result);
+        }
+
+        return result;
+    }
 
     let innerWidth = $state(0);
     let innerHeight = $state(0);
@@ -10,19 +35,55 @@
     let isUltrawide = $derived(innerWidth / innerHeight >= 2);
     let postClass = $derived(isPortrait ? "image-button-portrait" : "image-button");
     let selected = $state(0);
+    let imageIndex = -1;
     let lastChange = Date.now();
+    let useFirstImage = $state(false);
+    let useSecondImage = $state(false);
+    let firstImage = $state({} as HTMLImageElement);
+    let secondImage = $state({} as HTMLImageElement);
+    let changeImageTimerHandle = 0;
 
     let { data }: PageProps = $props();
+
+    let imageOrder = $derived(getShuffledArray(data.collections[selected].titleImages, data.collections[selected].forceFirstTitleImage));
+
+
+    function setChangeImageTimer(millis: number)
+    {
+        if (changeImageTimerHandle)
+        {
+            clearTimeout(changeImageTimerHandle);
+        }
+
+        changeImageTimerHandle = setTimeout(() => changeImage(), millis);
+    }
+
+    function setSelection(num: number)
+    {
+        const newSelection = num;
+        selected = newSelection >= 0 && newSelection < data.collections.length ? newSelection : selected;
+
+        if (selected == newSelection) {
+            imageIndex = -1;
+            setChangeImageTimer(100);
+        }
+    }
+
+    function changeSelection(offset: number)
+    {
+        const newSelection = selected + offset;
+        setSelection(newSelection);
+    }
 
     function swipeHandler(event: SwipeCustomEvent)
     {
         if (event.detail.direction == 'right')
         {
-            selected = selected > 0 ? selected - 1 : 0;
+            changeSelection(-1);
         }
         else if (event.detail.direction == 'left')
         {
-            selected = selected < data.collections.length - 1 ? selected + 1 : selected;
+            changeSelection(1);
         }
     }
 
@@ -43,15 +104,49 @@
         
         if (event.deltaX < 0)
         {
-            selected = selected < data.collections.length - 1 ? selected + 1 : selected;
+            changeSelection(1);
             lastChange = Date.now();
         }
         else if (event.deltaX > 0)
         {
-            selected = selected > 0 ? selected - 1 : 0;
+            changeSelection(-1);
             lastChange = Date.now();
         }
     }
+
+    function changeImage() {
+        imageIndex = (imageIndex + 1) % imageOrder.length;
+        changeImageTimerHandle = 0;
+
+        if (useFirstImage) {
+            // we'll be applying this to the second image
+            secondImage.src = imageOrder[imageIndex];
+        }
+        else {
+            // applying to the first image
+            firstImage.src = imageOrder[imageIndex];
+        }
+    }
+
+    onMount(() => {
+        firstImage = new Image();
+
+        firstImage.onload = () => {
+            useFirstImage = true;
+            useSecondImage = false;
+            setChangeImageTimer(10000);
+        };
+
+        secondImage = new Image();
+
+        secondImage.onload = () => {
+            useFirstImage = false;
+            useSecondImage = true;
+            setChangeImageTimer(10000);
+        };
+
+        setSelection(0);
+    });
 </script>
 
 <svelte:window bind:innerWidth bind:innerHeight on:wheel={(e) => wheelHandler(e)} />
@@ -60,8 +155,16 @@
 <div class="overlay" use:swipe={() => ({timeframe: 200, minSwipeDistance: 50, touchAction: 'pan-y'})} onswipe={swipeHandler}>
 {#if selected >= 0}
     {@const collection = data.collections[selected]}
-    <div transition:fade class="collection-page">
-        <img class="collection-image" src={collection.titleImage} alt={collection.titleImage}/>
+    <div transition:fade class="collection-page" id="image-root">
+        {#if useFirstImage && firstImage}
+            <div transition:fade={{duration: 1000}} class="overlay">
+                <img class="collection-image" src={firstImage.src} alt={firstImage.src}/>
+            </div>
+        {:else if useSecondImage && secondImage}
+            <div transition:fade={{duration: 1000}} class="overlay">
+                <img transition:fade class="collection-image" src={secondImage.src} alt={secondImage.src}/>
+            </div>
+        {/if}
         <div class="header" data-sveltekit-reload>
             <h1 class="title"><a href={resolve(`/collection/${collection.id}`)}>{collection.title}</a></h1>
             <h3 class="small">{collection.subtitle}</h3>
@@ -77,7 +180,7 @@
                 {:else}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div transition:scale class="item-dot tooltip" onclick={() => selected = i}>
+                    <div transition:scale class="item-dot tooltip" onclick={() => setSelection(i)}>
                         <span class="tooltiptext">{collection.title}</span>
                     </div>
                 {/if}
@@ -133,6 +236,7 @@
         height: 100%;
         display: inline-block;
         position: relative;
+        background-color: #000;
     }
 
     .collection-image {
@@ -140,7 +244,7 @@
         height: 100%;
         display: inline-block;
         object-fit: cover;
-        background-color: #777;
+        background-color: #000;
         position: relative;
         /* filter: brightness(0.5); */
     }
@@ -165,7 +269,7 @@
         position: relative;
         width: 15px;
         height: 15px;
-        margin-right: 1em;
+        margin-right: 0.5em;
     }
 
     .item-dot-spacing-last {

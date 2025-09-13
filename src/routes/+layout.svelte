@@ -45,6 +45,7 @@
 		bottom: 0;
 		padding: 0;
 		margin: 0;
+		padding-top: 3px;
 		width: 40px;
 		height: 38px;
 		background-color: #000A;
@@ -58,6 +59,6 @@
 
 	.button-image {
 		width: auto;
-		height: 100%;
+		height: 80%;
 	}
 </style>

@@ -21,6 +21,8 @@ var walkSync = function(dir, filelist) {
 interface Collection {
     id: string;
     title: string;
+    subtitle: string;
+    titleImages: string[];
     sortDate: string;
     parent: string;
     posts: string[];
@@ -28,7 +30,8 @@ interface Collection {
 
 interface PostImage {
     src: string;
-    size: number;
+    collageSrc: string;
+    navSrc: string;
 }
 
 interface Post {
@@ -60,7 +63,7 @@ if (fs.existsSync(allFile))
 let fileList = walkSync(postsPath + '/', null);
 let postCollections: Collection[] = [];
 
-fileList.forEach((i) =>
+fileList.forEach((i: string) =>
 {
     let data = JSON.parse(fs.readFileSync(i, 'utf8')) as Post;
     if (postCollections.findIndex(c => c.id == data.collection) < 0)
@@ -68,12 +71,16 @@ fileList.forEach((i) =>
         postCollections.push({
             id: data.collection,
             title: data.collection,
+            subtitle: "",
+            titleImages: [],
+            sortDate: "",
             parent: "",
             posts: []
         });
     }
 
     let collection = postCollections.find(c => c.id == data.collection);
+    collection?.titleImages.push(data.images[0].src);
     collection?.posts.push(path.basename(i).split('.')[0]);
 });
 
@@ -87,8 +94,9 @@ postCollections.forEach(c =>
     }
     else
     {
-        // update existing collection's posts
+        // update existing collection's posts and title images
         existingData[index].posts = c.posts;
+        existingData[index].titleImages = c.titleImages;
     }
 });
 
