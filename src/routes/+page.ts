@@ -3,8 +3,8 @@ import type { PageLoad } from './$types';
 interface Collection {
     id: string;
     title: string;
+    subtitle: string;
     titleImage: string;
-    titleImages: string[];
     parent: string;
     posts: string[];
 }

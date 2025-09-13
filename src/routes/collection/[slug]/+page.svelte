@@ -32,8 +32,6 @@
 <div class="header">
     <h1 class="title">{data.collection.title}</h1>
 </div>
-{:else}
-<div>hello?</div>
 {/if}
 
 <style>

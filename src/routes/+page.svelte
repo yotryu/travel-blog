@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
-    import { fade, fly } from 'svelte/transition';
+    import { crossfade, fade, fly, scale } from 'svelte/transition';
+    import { swipe, type SwipeCustomEvent } from 'svelte-gestures';
     import { resolve } from '$app/paths';
 
     let innerWidth = $state(0);
@@ -8,30 +9,74 @@
     let isPortrait = $derived(innerWidth <= innerHeight);
     let isUltrawide = $derived(innerWidth / innerHeight >= 2);
     let postClass = $derived(isPortrait ? "image-button-portrait" : "image-button");
+    let selected = $state(0);
+    let lastChange = Date.now();
 
     let { data }: PageProps = $props();
-    let selected = $state(0);
-    let hoverIndex = $state(-1);
+
+    function swipeHandler(event: SwipeCustomEvent)
+    {
+        if (event.detail.direction == 'right')
+        {
+            selected = selected > 0 ? selected - 1 : 0;
+        }
+        else if (event.detail.direction == 'left')
+        {
+            selected = selected < data.collections.length - 1 ? selected + 1 : selected;
+        }
+    }
+
+    function wheelHandler(event: WheelEvent)
+    {
+        const minTime = 300;
+        const minMovement = 30;
+
+        if (Math.abs(event.deltaX) < minMovement)
+        {
+            return;
+        }
+
+        if (Date.now() - lastChange < minTime)
+        {
+            return;
+        }
+        
+        if (event.deltaX < 0)
+        {
+            selected = selected < data.collections.length - 1 ? selected + 1 : selected;
+            lastChange = Date.now();
+        }
+        else if (event.deltaX > 0)
+        {
+            selected = selected > 0 ? selected - 1 : 0;
+            lastChange = Date.now();
+        }
+    }
 </script>
 
-<svelte:window bind:innerWidth bind:innerHeight />
+<svelte:window bind:innerWidth bind:innerHeight on:wheel={(e) => wheelHandler(e)} />
 
 
-<div class="overlay">
-{#each data.collections as collection}
-    <div class="collection-page">
+<div class="overlay" use:swipe={() => ({timeframe: 200, minSwipeDistance: 50, touchAction: 'pan-y'})} onswipe={swipeHandler}>
+{#if selected >= 0}
+    {@const collection = data.collections[selected]}
+    <div transition:fade class="collection-page">
         <img class="collection-image" src={collection.titleImage} alt={collection.titleImage}/>
         <div class="header">
             <h1 class="title">{collection.title}</h1>
+            <h3 class="small">{collection.subtitle}</h3>
         </div>
     </div>
-{/each}
+{/if}
     <div class="overlay-bottom">
         {#each data.collections as collection, i}
-            {@const dotClass = selected == i ? "item-dot-selected" : "item-dot"}
-            <div class={dotClass} onmouseenter={() => hoverIndex = i} onmouseleave={() => hoverIndex = -1}>
-                {#if hoverIndex == i}
-                    <div transition:fade class="preview">
+            {@const dotClass = (i == data.collections.length - 1 ? "item-dot-spacing-last" : "item-dot-spacing")}
+            <div class={dotClass}>
+                {#if selected == i}
+                    <div transition:scale class="item-dot-selected"></div>
+                {:else}
+                    <div transition:scale class="item-dot tooltip" onclick={() => selected = i}>
+                        <span class="tooltiptext">{collection.title}</span>
                     </div>
                 {/if}
             </div>
@@ -64,6 +109,7 @@
         left: 0;
         color: #f5f5dc;
         white-space: nowrap;
+        overflow: hidden;
     }
 
     .collection-line {
@@ -107,30 +153,45 @@
         padding-bottom: 0.5em;
         color: #f5f5dc;
         /* text-shadow: 0 2px 6px #000; */
-        background-color: #0005;
+        background-color: #000A;
         text-align: center;
         vertical-align: middle;
     }
 
+    .item-dot-spacing, .item-dot-spacing-last {
+        display: inline-block;
+        position: relative;
+        width: 15px;
+        height: 15px;
+        margin-right: 1em;
+    }
+
+    .item-dot-spacing-last {
+        margin-right: 0;
+    }
+
     .item-dot {
         display: inline-block;
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        margin-right: 1em;
-        margin-bottom: 0.1em;
+        margin-bottom: 1px;
         border: 2px solid beige;
-        position: relative;
+        cursor: pointer;
     }
 
     .item-dot-selected {
         display: inline-block;
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        margin-right: 1em;
         background-color: beige;
-        position: relative;
     }
 
     .preview {
@@ -143,10 +204,61 @@
         background-color: beige;
     }
 
+    /* Tooltip container */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+    }
+
+    /* Tooltip text */
+    .tooltiptext, .tooltiptext-selected {
+        visibility: hidden;
+        width: 200px;
+        background-color: beige;
+        color: #000;
+        text-align: center;
+        font-family: Fira-Regular;
+        padding: 5px 0;
+        border-radius: 6px;
+
+        /* Position the tooltip text */
+        position: absolute;
+        z-index: 1;
+        bottom: 22px;
+        left: 50%;
+        margin-left: -100px;
+
+        /* Fade in tooltip */
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltiptext-selected {
+        bottom: 26px;
+    }
+
+    /* Tooltip arrow */
+    .tooltiptext::after, .tooltiptext-selected::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -10px;
+        border-width: 10px;
+        border-style: solid;
+        border-color: beige transparent transparent transparent;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext, .tooltip:hover .tooltiptext-selected {
+        visibility: visible;
+        opacity: 1;
+    }
+
     .small {
-        font-size: smaller;
+        font-size: medium;
         margin-bottom: 0.5em;
-        margin-top: 0;
+        margin-top: 0.5em;
         /* text-shadow: 0 0 4px #000; */
     }
 
