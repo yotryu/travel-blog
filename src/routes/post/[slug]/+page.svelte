@@ -180,7 +180,7 @@
     .edge-container,
     .edge-container-portrait {
         right: 0;
-        width: 30px;
+        width: 40px;
         background: #111C;
         padding: unset;
         display: flex;
@@ -194,7 +194,7 @@
 
     .edge-container-portrait {
         width: unset;
-        height: 40px;
+        height: 38px;
     }
 
     .content {

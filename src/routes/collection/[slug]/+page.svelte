@@ -57,6 +57,7 @@
         left: 0;
         color: #f5f5dc;
         white-space: nowrap;
+        overflow: auto;
     }
 
     img {
@@ -180,7 +181,7 @@
 
     .edge-container-portrait {
         width: unset;
-        height: 40px;
+        height: 38px;
     }
 
     .content {
