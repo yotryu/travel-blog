@@ -62,7 +62,7 @@
     {@const collection = data.collections[selected]}
     <div transition:fade class="collection-page">
         <img class="collection-image" src={collection.titleImage} alt={collection.titleImage}/>
-        <div class="header">
+        <div class="header" data-sveltekit-reload>
             <h1 class="title"><a href={resolve(`/collection/${collection.id}`)}>{collection.title}</a></h1>
             <h3 class="small">{collection.subtitle}</h3>
         </div>
