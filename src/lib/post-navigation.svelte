@@ -59,11 +59,13 @@
 		position: absolute;
         top: 0;
         left: 0;
+		bottom: 0;
         color: beige;
 		font-family: Fira-Regular;
         /* background-color:dimgrey; */
 		transition: ease-out 200ms;
-		overflow: hidden;
+		/* overflow: hidden; */
+		overflow: auto;
 		z-index: 10;
 	}
 
