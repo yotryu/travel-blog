@@ -5,6 +5,7 @@
     import type { ChangeEventHandler } from "svelte/elements";
     import { fade, fly } from "svelte/transition";
     import type { PageProps } from "./$types";
+    import { google } from 'googleapis';
 
     interface ImageRef
     {
@@ -76,12 +77,18 @@
     let postData = $state(_postData);
 
 
-    function loadImage(event)
+    function loadImage(event: Event)
     {
-        let newImages = [...images];
-        for (let i = 0; i < event.target.files.length; ++i)
+        let target = (<HTMLInputElement>event.target);
+        if (!target || !target.files)
         {
-            let f = event.target.files[i];
+            return;
+        }
+
+        let newImages = [...images];
+        for (let i = 0; i < target.files.length; ++i)
+        {
+            let f = target.files[i];
             const reader = new FileReader();
             reader.onload = function() {
                 //uploadTestFile(new Uint8Array(reader.result));
@@ -120,6 +127,28 @@
         }
         
         postData.images.splice(to, 0, postData.images.splice(currentIndex, 1)[0]);
+    }
+
+    function proxyOpenImages()
+    {
+        let element = document.getElementById('chooseImages');
+        if (!element)
+        {
+            return;
+        }
+        
+        element.click();
+    }
+
+    function getInputText(element: Event)
+    {
+        let target = (<HTMLInputElement>element.target);
+        if (!target)
+        {
+            return "";
+        }
+
+        return target.value;
     }
 
     function setContent(contentText: string)
@@ -212,8 +241,10 @@
         {
             return false;
         }
-        
-        let uploadURL = response.headers["location"];
+
+        // this copy of the data silences typescript errors since the API says the headers object is an array...
+        let headers = JSON.parse(JSON.stringify(response.headers));
+        let uploadURL = headers["location"];
         let putResult = await fetch(uploadURL, {
             'method': 'PUT',
             'body': buffer,
@@ -234,7 +265,7 @@
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: "953825518423-opf6ljfsqvslodfru7ugocm5ps5rgacp.apps.googleusercontent.com",
             scope: "https://www.googleapis.com/auth/drive.file",
-            callback: async (resp) => {
+            callback: async (resp: any) => {
                 if (resp.error !== undefined) {
                     status = -1;
                     throw(resp);
@@ -295,17 +326,17 @@
 <ImageCollage imagesData={postData.images}/>
 
 <div class="header">
-    <input class="collection-input" list="exampleList" placeholder="Collection" onchange={(e) => postData.collection = e.target.value}/>
+    <input class="collection-input" list="exampleList" placeholder="Collection" onchange={(e) => postData.collection = getInputText(e)}/>
     <datalist id="exampleList">
         {#each data.collections as collection}
             <option value={collection.id}></option>
         {/each}
     </datalist>
     <div>
-        <input class="title-input" placeholder="Title" onchangecapture={(e) => postData.title = e.target.value}/>
+        <input class="title-input" placeholder="Title" onchangecapture={(e) => postData.title = getInputText(e)}/>
     </div>
     <div>
-        <input class="small-input" placeholder="Date" onchangecapture={(e) => postData.date = e.target.value}/>
+        <input class="small-input" placeholder="Date" onchangecapture={(e) => postData.date = getInputText(e)}/>
     </div>
     <div>
         <button class="add-button" onclick={() => isEditingImages = true}>Edit Images...</button>
@@ -320,7 +351,7 @@
         <textarea class="content-input" id="contentTextArea" placeholder="Add post content..." 
             onchangecapture={(e) => {
                 isEditingContent = e.target == document.activeElement;
-                setContent(e.target.value);
+                setContent(getInputText(e));
             }}>{postData.content}</textarea>
         <div class="content-bottom">
             <button class="add-button">Upload All</button>
@@ -336,7 +367,7 @@
 <div class="overlay" onclickcapture={() => isEditingImages = false}></div>
 <div class="image-edit-popout" transition:fly="{editImagesFlyData}">
     <div class="small-margins">
-        <button class="add-button fill-width" onclick={() => document.getElementById('chooseImages').click()}>Add Images...</button>
+        <button class="add-button fill-width" onclick={() => proxyOpenImages()}>Add Images...</button>
         <input id="chooseImages" type="file" accept="image/*" multiple onchange={(evt) => loadImage(evt)} style="display:none;"/>
     </div>
     <div class="small-margins bottom-line"></div>
