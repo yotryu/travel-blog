@@ -27,7 +27,6 @@
 	},
 	"dependencies": {
 		"@types/gapi": "^0.0.47",
-		"googleapis": "^160.0.0",
 		"minimist": "^1.2.8",
 		"sharp": "^0.34.3",
 		"svelte-gestures": "^5.1.4"

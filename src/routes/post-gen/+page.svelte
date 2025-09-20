@@ -5,7 +5,6 @@
     import type { ChangeEventHandler } from "svelte/elements";
     import { fade, fly } from "svelte/transition";
     import type { PageProps } from "./$types";
-    import { google } from 'googleapis';
 
     interface ImageRef
     {
@@ -36,11 +35,6 @@
         x: -100,
         opacity: 0
 	}
-	
-	const fadeOut = {
-		delay: 0,
-		duration: 100
-	}
 
     let { data }: PageProps = $props();
 
@@ -58,7 +52,9 @@
     let isEditingImages = $state(false);
 
     let tokenClient: any;
-    let status = $state(1);
+    let authKey = $state("");
+    let loaded = $state(false);
+    let authenticated = $state(false);
     let uploading = $state(false);
     let isEditingContent = $state(false);
 
@@ -129,9 +125,9 @@
         postData.images.splice(to, 0, postData.images.splice(currentIndex, 1)[0]);
     }
 
-    function proxyOpenImages()
+    function proxyClick(id: string)
     {
-        let element = document.getElementById('chooseImages');
+        let element = document.getElementById(id);
         if (!element)
         {
             return;
@@ -178,6 +174,11 @@
         // const imgBuffer = resizedImage.toBuffer();
 
         // return new Uint8Array(imgBuffer);
+    }
+
+    async function uploadAll()
+    {
+
     }
 
     async function uploadImages()
@@ -259,32 +260,49 @@
     async function initializeGapiClient()
     {
         await gapi.client.init({
-            apiKey: "AIzaSyBD1i5924f_4Lz3vfjL5msxRvI3K31zRgk"
+            apiKey: authKey
         });
 
+        // google is loaded dynamically and attempts to include the client library resulted in failures,
+        // so disabling the error for now as it is an offline only issue.
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: "953825518423-opf6ljfsqvslodfru7ugocm5ps5rgacp.apps.googleusercontent.com",
             scope: "https://www.googleapis.com/auth/drive.file",
             callback: async (resp: any) => {
                 if (resp.error !== undefined) {
-                    status = -1;
+                    alert(`Failed to authenticate: ${resp}`);
                     throw(resp);
                 }
 
-                status = 0;
-                sessionStorage.setItem("gtoken", gapi.client.getToken().access_token);
+                authenticated = true;
             }
         });
 
-        status = 2;
-
-        // let tokenString = sessionStorage.getItem("gtoken");
-        // if (tokenString)
-        // {
-        //     gapi.client.setToken({access_token: tokenString});
-        //     status = 0;
-        // }
+        loaded = true;
     };
+
+    function initWithAuthKeyFile(event: Event)
+    {
+        let target = <HTMLInputElement>event.target;
+        if (!target || !target.files || target.files.length == 0)
+        {
+            return;
+        }
+
+        let file = target.files[0];
+        const reader = new FileReader();
+        reader.onload = function() {
+            if (reader.result)
+            {
+                authKey = reader.result.toString();
+                localStorage.setItem("apiKey", authKey);
+                gapi.load('client', initializeGapiClient);
+            }
+        }
+        reader.readAsText(file);
+    }
 
     function doLogin()
     {
@@ -305,94 +323,108 @@
         await loadScript("https://apis.google.com/js/api.js");
         await loadScript("https://accounts.google.com/gsi/client");
 
-        gapi.load('client', initializeGapiClient);
+        let key = localStorage.getItem("apiKey");
+        if (key)
+        {
+            authKey = key;
+            gapi.load('client', initializeGapiClient);
+        }
     });
 </script>
 
 <svelte:window bind:innerWidth bind:innerHeight />
 
-{#if status == 0}
-{:else if status == 1}
-<p>Loading...</p>
-{:else if status == 2}
-<p>Ready</p>
-<button onclick={() => doLogin()}>Login</button>
-{:else if status == 3}
-<p>Attempting login...</p>
-{:else if status == -1}
-<p>Failed to login</p>
-{/if}
+{#if authenticated}
 
-<ImageCollage imagesData={postData.images}/>
+    <ImageCollage imagesData={postData.images}/>
 
-<div class="header">
-    <input class="collection-input" list="exampleList" placeholder="Collection" onchange={(e) => postData.collection = getInputText(e)}/>
-    <datalist id="exampleList">
-        {#each data.collections as collection}
-            <option value={collection.id}></option>
-        {/each}
-    </datalist>
-    <div>
-        <input class="title-input" placeholder="Title" onchangecapture={(e) => postData.title = getInputText(e)}/>
-    </div>
-    <div>
-        <input class="small-input" placeholder="Date" onchangecapture={(e) => postData.date = getInputText(e)}/>
-    </div>
-    <div>
-        <button class="add-button" onclick={() => isEditingImages = true}>Edit Images...</button>
-    </div>
-</div>
-
-{#if isExpanded}
-<div class="overlay" >
-    <div class="overlay" onclickcapture={() => isExpanded = false}>
-    </div>
-    <div transition:fly="{flyData}" class="{containerClass} {expandedClass}">
-        <textarea class="content-input" id="contentTextArea" placeholder="Add post content..." 
-            onchangecapture={(e) => {
-                isEditingContent = e.target == document.activeElement;
-                setContent(getInputText(e));
-            }}>{postData.content}</textarea>
-        <div class="content-bottom">
-            <button class="add-button">Upload All</button>
+    <div class="header">
+        <input class="collection-input" list="exampleList" placeholder="Collection" onchange={(e) => postData.collection = getInputText(e)}/>
+        <datalist id="exampleList">
+            {#each data.collections as collection}
+                <option value={collection.id}></option>
+            {/each}
+        </datalist>
+        <div>
+            <input class="title-input" placeholder="Title" onchangecapture={(e) => postData.title = getInputText(e)}/>
+        </div>
+        <div>
+            <input class="small-input" placeholder="Date" onchangecapture={(e) => postData.date = getInputText(e)}/>
+        </div>
+        <div>
+            <button class="add-button" onclick={() => isEditingImages = true}>Edit Images...</button>
         </div>
     </div>
-</div>
-{:else}
-<div transition:fly="{flyData}" class="{edgeClass}" onclick={() => isExpanded = true}>{expandArrow}</div>
-{/if}
 
-<!-- Image editing popout -->
-{#if isEditingImages}
-<div class="overlay" onclickcapture={() => isEditingImages = false}></div>
-<div class="image-edit-popout" transition:fly="{editImagesFlyData}">
-    <div class="small-margins">
-        <button class="add-button fill-width" onclick={() => proxyOpenImages()}>Add Images...</button>
-        <input id="chooseImages" type="file" accept="image/*" multiple onchange={(evt) => loadImage(evt)} style="display:none;"/>
-    </div>
-    <div class="small-margins bottom-line"></div>
-    <div class="small-margins">
-    {#each postData.images as image}
-        <div class="image-preview-container">
-            <img class="image-preview" src={image.src} alt={image.src}/>
-            <div class="overlay">
-                <div class="right-align">
-                    <div>
-                        <button class="image-preview-button" onclick={() => moveImageIndex(image, -1)}>↑</button>
-                    </div>
-                    <div class="bottom-right">
-                        <button class="image-preview-button" onclick={() => moveImageIndex(image, 1)}>↓</button>
-                    </div>
-                </div>
-                <div class="left-align">
-                    <button class="image-preview-button red-button" onclick={() => removeImage(image)}>-</button>
-                </div>
+    {#if isExpanded}
+    <div class="overlay" >
+        <div class="overlay" onclickcapture={() => isExpanded = false}>
+        </div>
+        <div transition:fly="{flyData}" class="{containerClass} {expandedClass}">
+            <textarea class="content-input" id="contentTextArea" placeholder="Add post content..." 
+                onchangecapture={(e) => {
+                    isEditingContent = e.target == document.activeElement;
+                    setContent(getInputText(e));
+                }}>{postData.content}</textarea>
+            <div class="content-bottom">
+                <button class="add-button" onclick={() => uploadAll()}>Upload All</button>
             </div>
         </div>
-        <div class="small-margins"></div>
-    {/each}
     </div>
-</div>
+    {:else}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div transition:fly="{flyData}" class="{edgeClass}" onclick={() => isExpanded = true}>{expandArrow}</div>
+    {/if}
+
+    <!-- Image editing popout -->
+    {#if isEditingImages}
+    <div class="overlay" onclickcapture={() => isEditingImages = false}></div>
+    <div class="image-edit-popout" transition:fly="{editImagesFlyData}">
+        <div class="small-margins">
+            <button class="add-button fill-width" onclick={() => proxyClick("chooseImages")}>Add Images...</button>
+            <input id="chooseImages" type="file" accept="image/*" multiple onchange={(evt) => loadImage(evt)} style="display:none;"/>
+        </div>
+        <div class="small-margins bottom-line"></div>
+        <div class="small-margins">
+        {#each postData.images as image}
+            <div class="image-preview-container">
+                <img class="image-preview" src={image.src} alt={image.src}/>
+                <div class="overlay">
+                    <div class="right-align">
+                        <div>
+                            <button class="image-preview-button" onclick={() => moveImageIndex(image, -1)}>↑</button>
+                        </div>
+                        <div class="bottom-right">
+                            <button class="image-preview-button" onclick={() => moveImageIndex(image, 1)}>↓</button>
+                        </div>
+                    </div>
+                    <div class="left-align">
+                        <button class="image-preview-button red-button" onclick={() => removeImage(image)}>-</button>
+                    </div>
+                </div>
+            </div>
+            <div class="small-margins"></div>
+        {/each}
+        </div>
+    </div>
+    {/if}
+
+{:else}
+    <!-- Not authenticated yet -->
+    <div class="center-login">
+        {#if !authKey}
+            <button class="add-button" onclick={() => proxyClick("chooseAuthKeyFile")}>Load Api Key</button>
+            <input id="chooseAuthKeyFile" type="file" accept=".txt" multiple onchange={(evt) => initWithAuthKeyFile(evt)} style="display:none;"/>
+        {:else}
+            {#if loaded}
+                <h1 class="title">Login</h1>
+                <button class="add-button" onclick={() => doLogin()}>Authenticate</button>
+            {:else}
+                <h1 class="title">Loading...</h1>
+            {/if}
+        {/if}
+    </div>
 {/if}
 
 <style>
@@ -416,6 +448,14 @@
         top: 0;
         left: 0;
         color: beige;
+    }
+
+    .center-login {
+        position: absolute;
+        top: calc(50% - 2em);
+        left: 25%;
+        width: 50%;
+        text-align: center;
     }
 
     .overlay-bottom {
