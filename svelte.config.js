@@ -22,7 +22,7 @@ const config = {
 	kit: {
 		adapter: adapter(),
 		prerender: {
-			entries: ["/", ...allPostRoutes, ...allCollectionRoutes]
+			entries: ["/", "/post-gen", ...allPostRoutes, ...allCollectionRoutes]
 		},
 		paths: {
 			base: process.argv.includes('dev') ? '' : "/travel-blog"

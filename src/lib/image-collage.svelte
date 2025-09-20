@@ -219,7 +219,7 @@
 
     function getConfigToUse(): Config
     {
-        if (imageCount <= configs.length)
+        if (imageCount > 0 && imageCount <= configs.length)
         {
             let config = configs[imageCount - 1].find(i => (isPortrait && (i.primaryAspect == "any" || i.primaryAspect == "portrait"))
                 || (!isPortrait && (i.primaryAspect == "any" || i.primaryAspect == "landscape")));
@@ -236,7 +236,7 @@
 
 <svelte:window bind:innerWidth bind:innerHeight />
 
-<div class="full-height">
+<div class="overlay">
     {#if getConfigToUse().images.length > 0}
         {@const config = getConfigToUse()}
         {@const scaler = isPortrait ? innerWidth / innerHeight : innerHeight / innerWidth}
@@ -254,9 +254,11 @@
             {@const bottom = originalBottom - ((originalBottom == 0 || originalBottom == 100 ? 2 : 1) * paddingSize * yScale)}
             {@const width = right - left}
             {@const height = bottom - top}
-            <button class="image-button" onclick={() => showImageAtIndex = i} style="position:absolute; left:{left}%; top:{top}%; width:{width}%; height:{height}%; min-width:{width}%; min-height:{height}%; overflow:hidden; display:flex; justify-content: center;">
-                <img src={imageData.collageSrc} alt={imageData.collageSrc} />
-            </button>
+            <div class="image-button-container" style="position:absolute; left:{left}%; top:{top}%; width:{width}%; height:{height}%; min-width:{width}%; min-height:{height}%; overflow:hidden; display:flex; justify-content: center;">
+                <button class="image-button" onclick={() => showImageAtIndex = i}>
+                    <img src={imageData.collageSrc} alt={imageData.collageSrc} />
+                </button>
+            </div>
         {/each}
     {:else if imageCount > 0}
         <div style="width:100%; height:100%; overflow:hidden; display:flex; justify-content: center;">
@@ -270,14 +272,11 @@
 <ImageGallery imagesData={imagesData} index={showImageAtIndex} onSelect={(i: number) => showImageAtIndex = i} onDismiss={() => showImageAtIndex = -1} />
 
 <style>
-    :global(html), :global(body), .full-height {
-        height: 100%;
-        margin: 0;
-    }
-
-    .full-height {
-        display: flex;
-        flex-flow: column;
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
         height: 100%;
         background-color: #FFF;
     }
@@ -290,7 +289,7 @@
         /* filter: brightness(0.5); */
     }
 
-    .image-button {
+    .image-button, .image-button-container {
         background: none;
         color: inherit;
         border: none;
@@ -298,5 +297,11 @@
         font: inherit;
         cursor: pointer;
         outline: inherit;
+        position: relative;
+    }
+
+    .image-button {
+        width: 100%;
+        height: 100%;
     }
 </style>

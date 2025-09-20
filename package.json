@@ -26,6 +26,7 @@
 		"vite": "^7.0.4"
 	},
 	"dependencies": {
+		"@types/gapi": "^0.0.47",
 		"minimist": "^1.2.8",
 		"sharp": "^0.34.3",
 		"svelte-gestures": "^5.1.4"
