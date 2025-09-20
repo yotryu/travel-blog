@@ -635,7 +635,7 @@
     }
 
     .expanded-portrait {
-        max-height: 70vh;
+        height: 70vh;
     }
 
     .edge-container,
