@@ -8,7 +8,7 @@
 
     interface ImageRef
     {
-        data: string;
+        data: ImageData;
         name: string;
     }
 
@@ -27,7 +27,7 @@
         title: string;
         content: string;
         contentParagraphs: string[]; // generated
-        images: ImageData[];
+        images: ImageRef[];
     }
 
     const editImagesFlyData = {
@@ -57,9 +57,7 @@
     let authenticated = $state(false);
     let uploading = $state(false);
     let isEditingContent = $state(false);
-
-    let _images: ImageRef[] = [];
-    let images = $state(_images);
+    let isGettingPostId = $state(false);
 
     let _postData: PostData = {
         id: "",
@@ -81,7 +79,6 @@
             return;
         }
 
-        let newImages = [...images];
         for (let i = 0; i < target.files.length; ++i)
         {
             let f = target.files[i];
@@ -92,10 +89,16 @@
                 if (reader.result)
                 {
                     const newData = {data: reader.result.toString(), name: f.name};
-                    newImages.push(newData);
-                    images = newImages;
+                    const imageRef: ImageRef = {
+                        name: f.name,
+                        data: {
+                            src: newData.data,
+                            collageSrc: newData.data,
+                            navSrc: ""
+                        }
+                    }
                     // TODO: resize images here
-                    postData.images.push({src: newData.data, collageSrc: newData.data, navSrc: ""});
+                    postData.images.push(imageRef);
                 }
             }
             //reader.readAsArrayBuffer(event.target.files[0]);
@@ -103,12 +106,12 @@
         }
     }
 
-    function removeImage(image: ImageData)
+    function removeImage(image: ImageRef)
     {
         postData.images = postData.images.filter(i => i != image);
     }
 
-    function moveImageIndex(image: ImageData, change: number)
+    function moveImageIndex(image: ImageRef, change: number)
     {
         let currentIndex = postData.images.findIndex(i => i == image);
         if (currentIndex < 0)
@@ -176,48 +179,219 @@
         // return new Uint8Array(imgBuffer);
     }
 
+    function setPostCollection(collection: string, requestPostId: boolean)
+    {
+        postData.collection = collection;
+
+        if (requestPostId)
+        {
+            getNextPostId();
+        }
+    }
+
+    async function requestFolderId(path: string)
+    {
+        let paths = path.split('/');
+        let parent = 'root';
+        for (let current of paths)
+        {
+            let query = `'${parent}' in parents and name = '${current}' and mimeType = 'application/vnd.google-apps.folder'`;
+            let response = await gapi.client.request({
+                'path': `/drive/v3/files?q=${encodeURI(query)}`,
+                'method': 'GET'
+            });
+            
+            if (!response)
+            {
+                return null;
+            }
+
+            let resData = JSON.parse(response.body);
+            
+            if (!resData.files || resData.files.length == 0)
+            {
+                return null;
+            }
+
+            parent = resData.files[0].id;
+        }
+
+        return parent;
+    }
+
+    async function requestNextPostId()
+    {
+        let path = `BlogData/Posts/${postData.collection}`;
+        let defaultValue = `${postData.collection}-01`;
+
+        let parent = await requestFolderId(path);
+        if (!parent)
+        {
+            return defaultValue;
+        }
+
+        // parent will be the id of the final folder in the path, now query for files in this folder
+        let query = `'${parent}' in parents and mimeType != 'application/vnd.google-apps.folder'`;
+        let response = await gapi.client.request({
+            'path': `/drive/v3/files`,
+            'params': {
+                'q': query
+            },
+            'method': 'GET'
+        });
+
+        if (!response)
+        {
+            return defaultValue;
+        }
+
+        // we should have a file list containing all files in this folder - find the "last"
+        let resData = JSON.parse(response.body);
+
+        if (!resData.files || resData.files.length == 0)
+        {
+            return defaultValue;
+        }
+
+        resData.files.sort((a: any, b: any) => {
+            return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+        });
+
+        let lastFile = resData.files[resData.files.length - 1];
+        let pieces = lastFile.name.split('.');
+        let lastNonExtPiece = pieces[pieces.length - 2];
+        
+        let lastGroupOfNumbers = lastNonExtPiece.match(/(?:\d+)(?!.*\d)/);
+        let num = lastGroupOfNumbers ? lastGroupOfNumbers[0] : null;
+
+        if (!num)
+        {
+            return defaultValue;
+        }
+
+        return `${postData.collection}-${String(num + 1).padStart(2, '0')}`;
+    }
+
+    async function requestFileId(path: string)
+    {
+        let parts = path.split('/');
+        let folderPath = parts.slice(0, -1).join('/');
+        let filename = parts[parts.length - 1];
+
+        let parentId = await requestFolderId(folderPath);
+        if (!parentId)
+        {
+            return null;
+        }
+
+        let query = `'${parentId}' in parents and name = '${filename}'`;
+        let response = await gapi.client.request({
+            'path': `/drive/v3/files`,
+            'params': {
+                'q': query
+            },
+            'method': 'GET'
+        });
+
+        if (!response)
+        {
+            return null;
+        }
+
+        let resData = JSON.parse(response.body);
+
+        if (!resData.files || resData.files.length == 0)
+        {
+            return null;
+        }
+
+        return resData.files[0].id;
+    }
+
+    async function requestFileMetadata(fileId: string, fields: string[])
+    {
+        let response = await gapi.client.request({
+            'path': `/drive/v3/files/${fileId}`,
+            'params': {
+                'fields': fields.join(',')
+            },
+            'method': 'GET'
+        });
+
+        if (!response)
+        {
+            return null;
+        }
+
+        let resData = JSON.parse(response.body);
+        return resData;
+    }
+
+    async function getNextPostId()
+    {
+        isGettingPostId = true;
+
+        let postId = await requestNextPostId();
+        postData.id = postId;
+
+        isGettingPostId = false;
+    }
+
     async function uploadAll()
     {
+        for (let image of postData.images)
+        {
+            let filePath = `BlogData/Photos/${postData.collection}/${image.name}`
+            let fileId = await requestFileId(filePath);
+            if (!fileId)
+            {
+                console.log(`Failed to get file ID for path: ${filePath}`);
+                continue;
+            }
 
+            let src = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
+            image.data.src = src;
+            image.data.collageSrc = src;
+        }
     }
 
     async function uploadImages()
     {
         uploading = true;
 
-        let imagesToUpload = [...images];
-        for (let i = 0; i < imagesToUpload.length; ++i)
-        {
-            await generateImagesAndUpload(imagesToUpload[i]);
-        }
+        // let imagesToUpload = [...images];
+        // for (let i = 0; i < imagesToUpload.length; ++i)
+        // {
+        //     await generateImagesAndUpload(imagesToUpload[i]);
+        // }
 
         uploading = false;
     }
 
     async function generateImagesAndUpload(image: ImageRef)
     {
-        const widths = [1000, 200];
+        // const widths = [1000, 200];
 
-        console.log("processing: " + image.name);
+        // console.log("processing: " + image.name);
 
-        let lastSepIndex = image.name.lastIndexOf("/");
-        let name = image.name.substring(lastSepIndex + 1);
-        let nameComponents = name.split('.');
-        let basePath = image.name.substring(0, lastSepIndex) + "/" + nameComponents[0];
+        // let lastSepIndex = image.name.lastIndexOf("/");
+        // let name = image.name.substring(lastSepIndex + 1);
+        // let nameComponents = name.split('.');
+        // let basePath = image.name.substring(0, lastSepIndex) + "/" + nameComponents[0];
 
-        // original
-        let buffer = await convertDataURLToBuffer(image.data);
-        await uploadFile(image.name, buffer);
+        // // original
+        // let buffer = await convertDataURLToBuffer(image.data);
+        // await uploadFile(image.name, buffer);
 
-        // generate small images and upload
-        for (let i = 0; i < widths.length; ++i)
-        {
-            const w = widths[i];
-            buffer = await downsizeImage(image.data, w);
-            let newPath = basePath + "_w" + w + "." + nameComponents[1];
+        // // generate small images and upload
+        // for (let i = 0; i < widths.length; ++i)
+        // {
+        //     const w = widths[i];
+        //     buffer = await downsizeImage(image.data, w);
+        //     let newPath = basePath + "_w" + w + "." + nameComponents[1];
 
-            await uploadFile(newPath, buffer);
-        }
+        //     await uploadFile(newPath, buffer);
+        // }
     }
 
     async function uploadFile(name: string, buffer: Uint8Array<ArrayBuffer>)
@@ -336,15 +510,22 @@
 
 {#if authenticated}
 
-    <ImageCollage imagesData={postData.images}/>
+    <ImageCollage imagesData={postData.images.map(i => i.data)}/>
 
     <div class="header">
-        <input class="collection-input" list="exampleList" placeholder="Collection" onchange={(e) => postData.collection = getInputText(e)}/>
-        <datalist id="exampleList">
+        <input class="collection-input" list="collectionList" placeholder="Collection" 
+            onchangecapture={(e) => e.target != document.activeElement ? setPostCollection(getInputText(e), true) : {}}/>
+        <datalist id="collectionList">
             {#each data.collections as collection}
                 <option value={collection.id}></option>
             {/each}
         </datalist>
+        {#if isGettingPostId}
+            <span class="post-id">-- Getting post ID --</span>
+        {:else}
+            <span class="post-id">{postData.id}</span>
+            <button class="add-button" onclick={() => requestFileId("BlogData/Photos/test/IMG_20250809_091949.jpg")}>Get test file ID</button>
+        {/if}
         <div>
             <input class="title-input" placeholder="Title" onchangecapture={(e) => postData.title = getInputText(e)}/>
         </div>
@@ -389,7 +570,7 @@
         <div class="small-margins">
         {#each postData.images as image}
             <div class="image-preview-container">
-                <img class="image-preview" src={image.src} alt={image.src}/>
+                <img class="image-preview" src={image.data.src} alt={image.name}/>
                 <div class="overlay">
                     <div class="right-align">
                         <div>
@@ -509,7 +690,7 @@
 		background-color:#111C;
 	}
 
-    .collection-input {
+    .collection-input, .post-id {
         font-size: smaller;
         margin-bottom: 0.5em;
 		margin-right: 1em;
@@ -519,6 +700,13 @@
         border: none;
         color: beige;
 		background-color: #0004;
+    }
+
+    .post-id {
+        margin: none;
+        display: inline-block;
+        padding: 4px 8px;
+        background-color: #7774;
     }
 
     .collection-input::placeholder {
