@@ -93,12 +93,13 @@
                         name: f.name,
                         data: {
                             src: newData.data,
-                            collageSrc: newData.data,
+                            collageSrc: "",
                             navSrc: ""
                         }
                     }
                     // TODO: resize images here
                     postData.images.push(imageRef);
+                    generateImages(imageRef);
                 }
             }
             //reader.readAsArrayBuffer(event.target.files[0]);
@@ -164,19 +165,32 @@
         return new Uint8Array(buffer);
     }
 
-    async function downsizeImage(imageBase64: string, width: number)
+    async function downsizeImage(img: HTMLImageElement, width: number)
     {
-        return new Uint8Array();
-        // const blob = await fetch(imageBase64).then(r => r.blob());
-        // const buffer = await blob.arrayBuffer();
+        // Create a canvas
+        let canvas = document.createElement('canvas');
+        let ctx = canvas.getContext('2d');
 
-        // const image = await ImageJS.load(buffer);
+        if (!ctx)
+        {
+            return null;
+        }
 
-        // const resizedImage = image.resize({ width: width });
+        // Calculate the new image dimensions
+        const maxHeight = width / (img.width / img.height);
+        let ratio = Math.min(width / img.width, maxHeight / img.height);
+        let newWidth = img.width * ratio;
+        let newHeight = img.height * ratio;
 
-        // const imgBuffer = resizedImage.toBuffer();
+        // Set canvas dimensions
+        canvas.width = newWidth;
+        canvas.height = newHeight;
 
-        // return new Uint8Array(imgBuffer);
+        // Draw the image on the canvas
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+        // Convert the canvas to a data URL
+        return canvas.toDataURL('image/jpeg');
     }
 
     function setPostCollection(collection: string, requestPostId: boolean)
@@ -189,13 +203,15 @@
         }
     }
 
-    async function requestFolderId(path: string)
+    async function requestFolderId(path: string, create: boolean = false)
     {
         let paths = path.split('/');
         let parent = 'root';
-        for (let current of paths)
+
+        for (let i = 0; i < paths.length; ++i)
         {
-            let query = `'${parent}' in parents and name = '${current}' and mimeType = 'application/vnd.google-apps.folder'`;
+            let current = paths[i];
+            let query = `'${parent}' in parents and name = '${current}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
             let response = await gapi.client.request({
                 'path': `/drive/v3/files?q=${encodeURI(query)}`,
                 'method': 'GET'
@@ -210,6 +226,36 @@
             
             if (!resData.files || resData.files.length == 0)
             {
+                // no folder at this path - create if we've been asked to
+                if (create)
+                {
+                    let metadata = {
+                        "name": current,
+                        "parents": [ parent ],
+                        "mimeType": 'application/vnd.google-apps.folder'
+                    };
+                    let dataStr = JSON.stringify(metadata);
+
+                    let response = await gapi.client.request({
+                        'path': '/drive/v3/files',
+                        'method': 'POST',
+                        'body': dataStr,
+                        'headers': {
+                            'content-type': "application/json",
+                            'content-length': dataStr.length
+                        }
+                    });
+
+                    if (!response)
+                    {
+                        return null;
+                    }
+
+                    // try again
+                    --i;
+                    continue;
+                }
+
                 return null;
             }
 
@@ -308,25 +354,6 @@
         return resData.files[0].id;
     }
 
-    async function requestFileMetadata(fileId: string, fields: string[])
-    {
-        let response = await gapi.client.request({
-            'path': `/drive/v3/files/${fileId}`,
-            'params': {
-                'fields': fields.join(',')
-            },
-            'method': 'GET'
-        });
-
-        if (!response)
-        {
-            return null;
-        }
-
-        let resData = JSON.parse(response.body);
-        return resData;
-    }
-
     async function getNextPostId()
     {
         isGettingPostId = true;
@@ -341,17 +368,19 @@
     {
         for (let image of postData.images)
         {
-            let filePath = `BlogData/Photos/${postData.collection}/${image.name}`
-            let fileId = await requestFileId(filePath);
-            if (!fileId)
-            {
-                console.log(`Failed to get file ID for path: ${filePath}`);
-                continue;
-            }
+            await generateImagesAndUpload(image);
 
-            let src = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
-            image.data.src = src;
-            image.data.collageSrc = src;
+            // let filePath = `BlogData/Photos/${postData.collection}/${image.name}`
+            // let fileId = await requestFileId(filePath);
+            // if (!fileId)
+            // {
+            //     console.log(`Failed to get file ID for path: ${filePath}`);
+            //     continue;
+            // }
+
+            // let src = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
+            // image.data.src = src;
+            // image.data.collageSrc = src;
         }
     }
 
@@ -368,36 +397,80 @@
         uploading = false;
     }
 
+    async function generateImages(image: ImageRef)
+    {
+        const widths = {
+            collageSrc: 1000,
+            navSrc: 200
+        };
+
+        let img = new Image();
+        let prom = new Promise((resolve, reject) => {
+            img.onload = () =>
+            {
+                resolve(img);
+            };
+            img.onerror = () =>
+            {
+                reject();
+            };
+        });
+        img.src = image.data.src;
+
+        await prom;
+
+        let buffer = await downsizeImage(img, widths.collageSrc);
+        let im = postData.images.find(i => i.name == image.name);
+        if (buffer && im)
+        {
+            im.data.collageSrc = buffer;
+        }
+        
+        buffer = await downsizeImage(img, widths.navSrc);
+        if (buffer && im)
+        {
+            im.data.navSrc = buffer;
+        }
+    }
+
     async function generateImagesAndUpload(image: ImageRef)
     {
-        // const widths = [1000, 200];
+        let nameComponents = image.name.split('.');
+        let basePath = nameComponents[0];
 
-        // console.log("processing: " + image.name);
+        // original
+        let buffer = await convertDataURLToBuffer(image.data.src);
+        let path = `BlogData/Photos/${postData.collection}/${image.name}`;
+        await uploadFile(path, buffer);
 
-        // let lastSepIndex = image.name.lastIndexOf("/");
-        // let name = image.name.substring(lastSepIndex + 1);
-        // let nameComponents = name.split('.');
-        // let basePath = image.name.substring(0, lastSepIndex) + "/" + nameComponents[0];
-
-        // // original
-        // let buffer = await convertDataURLToBuffer(image.data);
-        // await uploadFile(image.name, buffer);
-
-        // // generate small images and upload
+        // generate small images and upload
         // for (let i = 0; i < widths.length; ++i)
         // {
         //     const w = widths[i];
-        //     buffer = await downsizeImage(image.data, w);
-        //     let newPath = basePath + "_w" + w + "." + nameComponents[1];
+        //     let buffer = await downsizeImage(img, w);
+        //     if (!buffer)
+        //     {
+        //         continue;
+        //     }
 
-        //     await uploadFile(newPath, buffer);
+        //     let newPath = basePath + "_w" + w + "." + nameComponents[1];
+        //     path = `BlogData/Photos/${postData.collection}/${newPath}`;
+
+        //     await uploadFile(path, buffer);
         // }
     }
 
-    async function uploadFile(name: string, buffer: Uint8Array<ArrayBuffer>)
+    async function uploadFile(path: string, buffer: Uint8Array<ArrayBuffer>)
     {
+        let comps = path.split('/');
+        let name = comps[comps.length - 1];
+        let folderPath = comps.slice(0, -1).join('/');
+
+        let folderId = await requestFolderId(folderPath, true);
+
         let metadata = {
-            "name": name
+            "name": name,
+            "parents": [ folderId ]
         };
         let dataStr = JSON.stringify(metadata);
 
@@ -570,7 +643,7 @@
         <div class="small-margins">
         {#each postData.images as image}
             <div class="image-preview-container">
-                <img class="image-preview" src={image.data.src} alt={image.name}/>
+                <img class="image-preview" src={image.data.navSrc} alt={image.name}/>
                 <div class="overlay">
                     <div class="right-align">
                         <div>
