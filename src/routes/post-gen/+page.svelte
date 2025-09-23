@@ -67,6 +67,7 @@
     let loaded = $state(false);
     let authenticated = $state(false);
     let uploading = $state(false);
+    let uploadCanceled = $state(false);
     let uploadProgress = $state("");
     let isEditingContent = $state(false);
     let isGettingPostId = $state(false);
@@ -378,6 +379,7 @@
 
     async function uploadAll()
     {
+        uploadCanceled = false;
         uploading = true;
         uploadProgress = "";
 
@@ -388,6 +390,11 @@
 
         for (let i = 0; i < postData.images.length; ++i)
         {
+            if (uploadCanceled)
+            {
+                break;
+            }
+
             let image = postData.images[i];
             uploadProgress += `Uploading images for '${image.name}'... `;
 
@@ -404,7 +411,7 @@
         }
 
         let jsonPath = `BlogData/Posts/${dataCopy.collection}/${dataCopy.id}.json`;
-        if (success)
+        if (success && !uploadCanceled)
         {
             let json = JSON.stringify(dataCopy);
             let encoder = new TextEncoder();
@@ -413,6 +420,11 @@
 
             let success = await uploadFile(jsonPath, encoder.encode(json));
             uploadProgress += success ? "Success" : "Failed";
+        }
+
+        if (uploadCanceled)
+        {
+            uploadProgress += "Cancelled";
         }
 
         uploading = false;
@@ -666,7 +678,6 @@
             <span class="post-id">-- Getting post ID --</span>
         {:else}
             <span class="post-id">{postData.id}</span>
-            <button class="add-button" onclick={() => requestFileId("BlogData/Photos/test/IMG_20250809_091949.jpg")}>Get test file ID</button>
         {/if}
         <div>
             <input class="title-input" placeholder="Title" onchangecapture={(e) => postData.title = getInputText(e)}/>
@@ -735,12 +746,20 @@
 
     <!-- Uploading -->
     {#if uploading || uploadProgress}
-    <div class="overlay-darken">
+    <div class="overlay-darken center-parent">
         <div class="center-login">
             <h3>Uploading...</h3>
             {@html uploadProgress}
             <div class="small-padding">
-                <button class="add-button" onclick={() => uploadProgress = ""}>Dismiss</button>
+                {#if uploading}
+                    {#if uploadCanceled}
+                        <p>Cancelling...</p>
+                    {:else}
+                        <button class="add-button red-button" onclick={() => uploadCanceled = true }>Cancel</button>
+                    {/if}
+                {:else}
+                    <button class="add-button" onclick={() => { uploading = false; uploadProgress = ""; }}>Done</button>
+                {/if}
             </div>
         </div>
     </div>
@@ -748,23 +767,25 @@
 
 {:else}
     <!-- Not authenticated yet -->
-    <div class="center-login">
-        {#if !authKey}
-            <button class="add-button" onclick={() => proxyClick("chooseAuthKeyFile")}>Load API Key</button>
-            <input id="chooseAuthKeyFile" type="file" accept=".txt" multiple onchange={(evt) => initWithAuthKeyFile(evt)} style="display:none;"/>
-        {:else}
-            {#if loaded}
-                <h1 class="title">Login</h1>
-                <div class="small-padding">
-                    <button class="add-button" onclick={() => doLogin()}>Authenticate</button>
-                </div>
-                <div class="small-padding">
-                    <button class="add-button red-button" onclick={() => removeAPIKey()}>Remove API Key</button>
-                </div>
+    <div class="overlay-darken center-parent">
+        <div class="center-login">
+            {#if !authKey}
+                <button class="add-button" onclick={() => proxyClick("chooseAuthKeyFile")}>Load API Key</button>
+                <input id="chooseAuthKeyFile" type="file" accept=".txt" multiple onchange={(evt) => initWithAuthKeyFile(evt)} style="display:none;"/>
             {:else}
-                <h1 class="title">Loading...</h1>
+                {#if loaded}
+                    <h1 class="title">Login</h1>
+                    <div class="small-padding">
+                        <button class="add-button" onclick={() => doLogin()}>Authenticate</button>
+                    </div>
+                    <div class="small-padding">
+                        <button class="add-button red-button" onclick={() => removeAPIKey()}>Remove API Key</button>
+                    </div>
+                {:else}
+                    <h1 class="title">Loading...</h1>
+                {/if}
             {/if}
-        {/if}
+        </div>
     </div>
 {/if}
 
@@ -795,11 +816,14 @@
         background-color: #000C;
     }
 
+    .center-parent {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
     .center-login {
-        position: absolute;
-        top: calc(50% - 2em);
-        left: 25%;
-        width: 50%;
+        display: flexbox;
         text-align: center;
     }
 
