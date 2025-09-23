@@ -170,6 +170,23 @@
         postData.contentParagraphs = contentText.split("\n");
     }
 
+    function clearPostData()
+    {
+        postData = _postData;
+        
+        let title = <HTMLInputElement>document.getElementById("inputTitle");
+        title.value = "";
+
+        let date = <HTMLInputElement>document.getElementById("inputDate");
+        date.value = "";
+
+        let collection = <HTMLInputElement>document.getElementById("inputCollection");
+        collection.value = "";
+
+        let content = <HTMLTextAreaElement>document.getElementById("contentTextArea");
+        content.value = "";
+    }
+
     async function convertDataURLToBuffer(input: string)
     {
         const blob = await fetch(input).then(r => r.blob());
@@ -667,7 +684,7 @@
     <ImageCollage imagesData={postData.images.map(i => i.data)}/>
 
     <div class="header">
-        <input class="collection-input" list="collectionList" placeholder="Collection" 
+        <input class="collection-input" id="inputCollection" list="collectionList" placeholder="Collection" 
             onchangecapture={(e) => e.target != document.activeElement ? setPostCollection(getInputText(e), true) : {}}/>
         <datalist id="collectionList">
             {#each data.collections as collection}
@@ -680,13 +697,16 @@
             <span class="post-id">{postData.id}</span>
         {/if}
         <div>
-            <input class="title-input" placeholder="Title" onchangecapture={(e) => postData.title = getInputText(e)}/>
+            <input class="title-input" id="inputTitle" placeholder="Title" size="35" onchangecapture={(e) => postData.title = getInputText(e)}/>
         </div>
         <div>
-            <input class="small-input" placeholder="Date" onchangecapture={(e) => postData.date = getInputText(e)}/>
+            <input class="small-input" id="inputDate" placeholder="Date" onchangecapture={(e) => postData.date = getInputText(e)}/>
         </div>
         <div>
             <button class="add-button" onclick={() => isEditingImages = true}>Edit Images...</button>
+        </div>
+        <div class="small-vertical-padding">
+            <button class="add-button red-button" onclick={() => clearPostData()}>Clear Post Data</button>
         </div>
     </div>
 
@@ -857,6 +877,11 @@
 
     .small-padding {
         padding: 10px;
+    }
+
+    .small-vertical-padding {
+        padding-top: 10px;
+        padding-bottom: 10px;
     }
 
     .image-edit-popout {
