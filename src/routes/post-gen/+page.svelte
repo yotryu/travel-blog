@@ -26,8 +26,19 @@
         date: string;
         title: string;
         content: string;
-        contentParagraphs: string[]; // generated
+        contentParagraphs: string[] | undefined; // generated
         images: ImageRef[];
+    }
+
+    interface SavablePostData
+    {
+        id: string;
+        collection: string;
+        date: string;
+        title: string;
+        content: string;
+        contentParagraphs: undefined;
+        images: ImageData[];
     }
 
     const editImagesFlyData = {
@@ -56,6 +67,7 @@
     let loaded = $state(false);
     let authenticated = $state(false);
     let uploading = $state(false);
+    let uploadProgress = $state("");
     let isEditingContent = $state(false);
     let isGettingPostId = $state(false);
 
@@ -315,7 +327,7 @@
             return defaultValue;
         }
 
-        return `${postData.collection}-${String(num + 1).padStart(2, '0')}`;
+        return `${postData.collection}-${String(Number(num) + 1).padStart(2, '0')}`;
     }
 
     async function requestFileId(path: string)
@@ -366,35 +378,97 @@
 
     async function uploadAll()
     {
-        for (let image of postData.images)
-        {
-            await generateImagesAndUpload(image);
-
-            // let filePath = `BlogData/Photos/${postData.collection}/${image.name}`
-            // let fileId = await requestFileId(filePath);
-            // if (!fileId)
-            // {
-            //     console.log(`Failed to get file ID for path: ${filePath}`);
-            //     continue;
-            // }
-
-            // let src = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
-            // image.data.src = src;
-            // image.data.collageSrc = src;
-        }
-    }
-
-    async function uploadImages()
-    {
         uploading = true;
+        uploadProgress = "";
 
-        // let imagesToUpload = [...images];
-        // for (let i = 0; i < imagesToUpload.length; ++i)
-        // {
-        //     await generateImagesAndUpload(imagesToUpload[i]);
-        // }
+        let success = true;
+        let dataCopy: SavablePostData = JSON.parse(JSON.stringify(postData));
+        dataCopy.images = new Array(postData.images.length);
+        dataCopy.contentParagraphs = undefined;
+
+        for (let i = 0; i < postData.images.length; ++i)
+        {
+            let image = postData.images[i];
+            uploadProgress += `Uploading images for '${image.name}'... `;
+
+            let imageData = await uploadImages(image);
+            success = !!imageData;
+            uploadProgress += (success ? "Success" : "Failed") + "<br>";
+
+            if (!success || !imageData)
+            {
+                break;
+            }
+
+            dataCopy.images[i] = imageData;
+        }
+
+        let jsonPath = `BlogData/Posts/${dataCopy.collection}/${dataCopy.id}.json`;
+        if (success)
+        {
+            let json = JSON.stringify(dataCopy);
+            let encoder = new TextEncoder();
+
+            uploadProgress += `Uploading '${jsonPath}'... `;
+
+            let success = await uploadFile(jsonPath, encoder.encode(json));
+            uploadProgress += success ? "Success" : "Failed";
+        }
 
         uploading = false;
+    }
+
+    async function uploadImages(image: ImageRef)
+    {
+        let imageData: ImageData = { src: "", collageSrc: "", navSrc: "" };
+        let nameComponents = image.name.split('.');
+        let basePath = nameComponents[0];
+
+        // original
+        let buffer = await convertDataURLToBuffer(image.data.src);
+        let path = `BlogData/Photos/${postData.collection}/${image.name}`;
+        let fileId = await uploadFile(path, buffer);
+
+        if (fileId)
+        {
+            imageData.src = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
+        }
+        else
+        {
+            return null;
+        }
+
+        // collageSrc
+        let newPath = basePath + "_w1000" + "." + nameComponents[1];
+        path = `BlogData/Photos/${postData.collection}/${newPath}`;
+        buffer = await convertDataURLToBuffer(image.data.collageSrc);
+        fileId = await uploadFile(path, buffer);
+
+        if (fileId)
+        {
+            imageData.collageSrc = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
+        }
+        else
+        {
+            return null;
+        }
+
+        // navSrc
+        newPath = basePath + "_w200" + "." + nameComponents[1];
+        path = `BlogData/Photos/${postData.collection}/${newPath}`;
+        buffer = await convertDataURLToBuffer(image.data.navSrc);
+        fileId = await uploadFile(path, buffer);
+
+        if (fileId)
+        {
+            imageData.navSrc = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
+        }
+        else
+        {
+            return null;
+        }
+
+        return imageData;
     }
 
     async function generateImages(image: ImageRef)
@@ -433,35 +507,15 @@
         }
     }
 
-    async function generateImagesAndUpload(image: ImageRef)
-    {
-        let nameComponents = image.name.split('.');
-        let basePath = nameComponents[0];
-
-        // original
-        let buffer = await convertDataURLToBuffer(image.data.src);
-        let path = `BlogData/Photos/${postData.collection}/${image.name}`;
-        await uploadFile(path, buffer);
-
-        // generate small images and upload
-        // for (let i = 0; i < widths.length; ++i)
-        // {
-        //     const w = widths[i];
-        //     let buffer = await downsizeImage(img, w);
-        //     if (!buffer)
-        //     {
-        //         continue;
-        //     }
-
-        //     let newPath = basePath + "_w" + w + "." + nameComponents[1];
-        //     path = `BlogData/Photos/${postData.collection}/${newPath}`;
-
-        //     await uploadFile(path, buffer);
-        // }
-    }
-
     async function uploadFile(path: string, buffer: Uint8Array<ArrayBuffer>)
     {
+        let existingFileId = await requestFileId(path);
+        if (existingFileId)
+        {
+            // already have a file ID for this path, so do nothing
+            return existingFileId;
+        }
+
         let comps = path.split('/');
         let name = comps[comps.length - 1];
         let folderPath = comps.slice(0, -1).join('/');
@@ -487,21 +541,30 @@
         
         if (!response || !response.headers)
         {
-            return false;
+            return null;
         }
 
         // this copy of the data silences typescript errors since the API says the headers object is an array...
         let headers = JSON.parse(JSON.stringify(response.headers));
         let uploadURL = headers["location"];
-        let putResult = await fetch(uploadURL, {
-            'method': 'PUT',
-            'body': buffer,
-            'headers': {
-                'content-length': buffer.byteLength.toString()
-            }
-        });
 
-        return !!putResult;
+        try
+        {
+            // this will fail in localhost because of CORS, so for now catch the error and move on
+            // - the request to get the file ID below will kind of validate this anyway... kind of
+            await fetch(uploadURL, {
+                'method': 'PUT',
+                'body': buffer,
+                'headers': {
+                    'content-length': buffer.byteLength.toString()
+                }
+            });
+        }
+        catch {}
+
+        existingFileId = await requestFileId(path);
+
+        return existingFileId;
     }
 
     async function initializeGapiClient()
@@ -549,6 +612,12 @@
             }
         }
         reader.readAsText(file);
+    }
+
+    function removeAPIKey()
+    {
+        localStorage.removeItem("apiKey");
+        authKey = "";
     }
 
     function doLogin()
@@ -664,16 +733,34 @@
     </div>
     {/if}
 
+    <!-- Uploading -->
+    {#if uploading || uploadProgress}
+    <div class="overlay-darken">
+        <div class="center-login">
+            <h3>Uploading...</h3>
+            {@html uploadProgress}
+            <div class="small-padding">
+                <button class="add-button" onclick={() => uploadProgress = ""}>Dismiss</button>
+            </div>
+        </div>
+    </div>
+    {/if}
+
 {:else}
     <!-- Not authenticated yet -->
     <div class="center-login">
         {#if !authKey}
-            <button class="add-button" onclick={() => proxyClick("chooseAuthKeyFile")}>Load Api Key</button>
+            <button class="add-button" onclick={() => proxyClick("chooseAuthKeyFile")}>Load API Key</button>
             <input id="chooseAuthKeyFile" type="file" accept=".txt" multiple onchange={(evt) => initWithAuthKeyFile(evt)} style="display:none;"/>
         {:else}
             {#if loaded}
                 <h1 class="title">Login</h1>
-                <button class="add-button" onclick={() => doLogin()}>Authenticate</button>
+                <div class="small-padding">
+                    <button class="add-button" onclick={() => doLogin()}>Authenticate</button>
+                </div>
+                <div class="small-padding">
+                    <button class="add-button red-button" onclick={() => removeAPIKey()}>Remove API Key</button>
+                </div>
             {:else}
                 <h1 class="title">Loading...</h1>
             {/if}
@@ -695,13 +782,17 @@
         font-family: Fira-ExtraLight;
     }
 
-    .overlay {
+    .overlay, .overlay-darken {
         width: 100%;
         height: 100%;
         position: absolute;
         top: 0;
         left: 0;
         color: beige;
+    }
+
+    .overlay-darken {
+        background-color: #000C;
     }
 
     .center-login {
@@ -738,6 +829,10 @@
         position: absolute;
         right: 0;
         bottom: 0;
+    }
+
+    .small-padding {
+        padding: 10px;
     }
 
     .image-edit-popout {
