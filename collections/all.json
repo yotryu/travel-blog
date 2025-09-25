@@ -150,6 +150,7 @@
         "subtitle": "NA West Coast and First Time Snowboarding",
         "sortDate": "201301",
         "parent": "",
+        "forceFirstTitleImage": 13,
         "posts": [
             "2013-usa-canada-01",
             "2013-usa-canada-02",
@@ -161,7 +162,14 @@
             "2013-usa-canada-08",
             "2013-usa-canada-09",
             "2013-usa-canada-10",
-            "2013-usa-canada-11"
+            "2013-usa-canada-11",
+            "2013-usa-canada-12",
+            "2013-usa-canada-13",
+            "2013-usa-canada-14",
+            "2013-usa-canada-15",
+            "2013-usa-canada-16",
+            "2013-usa-canada-17",
+            "2013-usa-canada-18"
         ],
         "titleImages": [
             "https://lh3.googleusercontent.com/d/1M2HRBTJQgdQKo_9MAKhYFtM1VR0QxVif?authuser=0",
@@ -174,7 +182,14 @@
             "https://lh3.googleusercontent.com/d/1hkVkF6qWhAqDQ2QQB9wV2L1YMMJTnWWr?authuser=0",
             "https://lh3.googleusercontent.com/d/1r-gpBDk5lNSd7A4I7zi6Ad-SkhBnpuCS?authuser=0",
             "https://lh3.googleusercontent.com/d/1zmvqFa3XS-fsdVximrbo2tcPsXKq79Aa?authuser=0",
-            "https://lh3.googleusercontent.com/d/14k56G5yAtSoEpGzi8oXWWF7P6jaBjeUZ?authuser=0"
+            "https://lh3.googleusercontent.com/d/14k56G5yAtSoEpGzi8oXWWF7P6jaBjeUZ?authuser=0",
+            "https://lh3.googleusercontent.com/d/1RokfyUy6D5RaTQ0BT78wRAoOnZTC1kCQ?authuser=0",
+            "https://lh3.googleusercontent.com/d/1Km7hZdhGIijIzfue0t3lDks9ZvYsDHKw?authuser=0",
+            "https://lh3.googleusercontent.com/d/1Ti0nm6Fsr51Qhzugh6C-_GaMVpjWW_p3?authuser=0",
+            "https://lh3.googleusercontent.com/d/1Pq80h_z2czToNpQ23BLoghcoAE8nY0Ko?authuser=0",
+            "https://lh3.googleusercontent.com/d/1mE9gUB70j233tHC_zzFBnRq5mvWyowM5?authuser=0",
+            "https://lh3.googleusercontent.com/d/1ADt4gCMc29iweX5It2WwAOatBEqYhdrC?authuser=0",
+            "https://lh3.googleusercontent.com/d/16tlz2e02chMHeJXhuc7pLIpMKc2NKrbp?authuser=0"
         ]
     }
 ]
