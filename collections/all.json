@@ -133,15 +133,24 @@
     },
     {
         "id": "2013-queenstown",
-        "title": "2013-queenstown",
+        "title": "2013 Queenstown",
         "subtitle": "Got the Snowboarding Bug!",
+        "forceFirstTitleImage": 3,
         "titleImages": [
-            "https://www.dropbox.com/scl/fi/5ikc8lrgmc7z689j2uhn2/IMG_20250809_091949.jpg?rlkey=7bj2f43ddqkrsiecde1n84lql&st=95s365nb&raw=1"
+            "https://lh3.googleusercontent.com/d/1UxFffLZ5kUCT8HKskszhz5I83xyAfJDT?authuser=0",
+            "https://lh3.googleusercontent.com/d/17HKSj3tBB0Nc7TLdLmIyXQExnr5DckvX?authuser=0",
+            "https://lh3.googleusercontent.com/d/1MH7SFBcYwHXoz6wE2OTCAPYJ1XXDoOz1?authuser=0",
+            "https://lh3.googleusercontent.com/d/1-sA5sLMg8NCTEgBGdYPBD1yKOg5YDelE?authuser=0",
+            "https://lh3.googleusercontent.com/d/1OKeFq8A9W6NJW7j_sW61YxLYGua4e0fB?authuser=0"
         ],
         "sortDate": "201308",
         "parent": "",
         "posts": [
-            "2013-queenstown-01"
+            "2013-queenstown-01",
+            "2013-queenstown-02",
+            "2013-queenstown-03",
+            "2013-queenstown-04",
+            "2013-queenstown-05"
         ]
     },
     {
