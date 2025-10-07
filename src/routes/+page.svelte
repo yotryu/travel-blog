@@ -4,6 +4,7 @@
     import { swipe, type SwipeCustomEvent } from 'svelte-gestures';
     import { resolve } from '$app/paths';
     import { onMount } from 'svelte';
+    import settingsIcon from '$lib/assets/slideshow_icon.svg';
 
     function getShuffledArray(array: any[], forceFirst: number): any[]
     {
@@ -29,12 +30,20 @@
         return result;
     }
 
+    const flyData = { duration: 200, y: 100, opactiy: 0 };
+
     let innerWidth = $state(0);
     let innerHeight = $state(0);
     let isPortrait = $derived(innerWidth <= innerHeight);
     let isUltrawide = $derived(innerWidth / innerHeight >= 2);
     let postClass = $derived(isPortrait ? "image-button-portrait" : "image-button");
     let selected = $state(0);
+    let autoHideNavigation = $state(false);
+    let collectionsExpanded = $state(false);
+    let settingsExpanded = $state(false);
+    let slideshowCollectionIndex = $state(-1);
+    let slideshowInterval = $state(10);
+    let slideshowCollections = $state([] as any[]);
     let imageIndex = -1;
     let lastChange = Date.now();
     let useFirstImage = $state(false);
@@ -45,7 +54,7 @@
 
     let { data }: PageProps = $props();
 
-    let imageOrder = $derived(getShuffledArray(data.collections[selected].titleImages, data.collections[selected].forceFirstTitleImage));
+    let imageOrder: string[] =[];//$state(getShuffledArray(data.collections[selected].titleImages, data.collections[selected].forceFirstTitleImage));
 
 
     function setChangeImageTimer(millis: number)
@@ -64,6 +73,8 @@
         selected = newSelection >= 0 && newSelection < data.collections.length ? newSelection : selected;
 
         if (selected == newSelection) {
+            imageOrder = getShuffledArray(data.collections[num].titleImages, data.collections[num].forceFirstTitleImage);
+            console.log(imageOrder);
             imageIndex = -1;
             setChangeImageTimer(100);
         }
@@ -73,6 +84,28 @@
     {
         const newSelection = selected + offset;
         setSelection(newSelection);
+    }
+
+    function doSlideshow(thisOnly: boolean)
+    {
+        collectionsExpanded = false;
+        settingsExpanded = false;
+        autoHideNavigation = true;
+
+        slideshowCollections = thisOnly ? [data.collections[selected]] : data.collections;
+
+        slideshowCollectionIndex = 0;
+        imageIndex = -1;
+        setChangeImageTimer(100);
+    }
+
+    function stopSlideshow()
+    {
+        autoHideNavigation = false;
+        settingsExpanded = false;
+        slideshowCollectionIndex = -1;
+        imageIndex = -1;
+        setChangeImageTimer(100);
     }
 
     function swipeHandler(event: SwipeCustomEvent)
@@ -91,6 +124,11 @@
     {
         const minTime = 300;
         const minMovement = 30;
+
+        if (collectionsExpanded)
+        {
+            return;
+        }
 
         if (Math.abs(event.deltaX) < minMovement)
         {
@@ -116,7 +154,7 @@
 
     function changeImage() {
         imageIndex = (imageIndex + 1) % imageOrder.length;
-        changeImageTimerHandle = 0;
+        //changeImageTimerHandle = 0;
 
         if (useFirstImage) {
             // we'll be applying this to the second image
@@ -128,22 +166,51 @@
         }
     }
 
+    function getImageChangeTime()
+    {
+        return slideshowCollectionIndex >= 0 ? slideshowInterval * 1000 : 10000;
+    }
+
+    function onFirstImageLoaded()
+    {
+        useFirstImage = true;
+        useSecondImage = false;
+        setChangeImageTimer(getImageChangeTime());
+    }
+
+    function onFirstImageError()
+    {
+        firstImage = new Image();
+        firstImage.onload = onFirstImageLoaded;
+        firstImage.onerror = onFirstImageError;
+
+        setChangeImageTimer(1000);
+    }
+
+    function onSecondImageLoaded()
+    {
+        useFirstImage = false;
+        useSecondImage = true;
+        setChangeImageTimer(getImageChangeTime());
+    }
+
+    function onSecondImageError()
+    {
+        secondImage = new Image();
+        secondImage.onload = onSecondImageLoaded;
+        secondImage.onerror = onSecondImageError;
+
+        setChangeImageTimer(1000);
+    }
+
     onMount(() => {
         firstImage = new Image();
-
-        firstImage.onload = () => {
-            useFirstImage = true;
-            useSecondImage = false;
-            setChangeImageTimer(10000);
-        };
+        firstImage.onload = onFirstImageLoaded;
+        firstImage.onerror = onFirstImageError;
 
         secondImage = new Image();
-
-        secondImage.onload = () => {
-            useFirstImage = false;
-            useSecondImage = true;
-            setChangeImageTimer(10000);
-        };
+        secondImage.onload = onSecondImageLoaded;
+        secondImage.onerror = onSecondImageError;
 
         setSelection(0);
     });
@@ -152,9 +219,9 @@
 <svelte:window bind:innerWidth bind:innerHeight on:wheel={(e) => wheelHandler(e)} />
 
 
-<div class="overlay" use:swipe={() => ({timeframe: 200, minSwipeDistance: 50, touchAction: 'pan-y'})} onswipe={swipeHandler}>
-{#if selected >= 0}
-    {@const collection = data.collections[selected]}
+<div class="overlay" >
+{#if selected >= 0 || (slideshowCollectionIndex >= 0 && slideshowCollections.length > 0)}
+    {@const collection = slideshowCollectionIndex >= 0 ? slideshowCollections[slideshowCollectionIndex] : data.collections[selected]}
     <div transition:fade class="collection-page" id="image-root">
         {#if useFirstImage && firstImage}
             <div transition:fade={{duration: 1000}} class="overlay">
@@ -171,7 +238,11 @@
         </div>
     </div>
 {/if}
-    <div class="overlay-bottom">
+{#if !collectionsExpanded && !autoHideNavigation}
+    <div class="overlay-bottom" transition:fly="{flyData}" >
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div onclick={() => collectionsExpanded = true}>
         {#each data.collections as collection, i}
             {@const dotClass = (i == data.collections.length - 1 ? "item-dot-spacing-last" : "item-dot-spacing")}
             <div class={dotClass}>
@@ -180,14 +251,69 @@
                 {:else}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div transition:scale class="item-dot tooltip" onclick={() => setSelection(i)}>
+                    <div transition:scale class="item-dot tooltip" onclick={(e) => {setSelection(i); e.stopPropagation();}}>
                         <span class="tooltiptext">{collection.title}</span>
                     </div>
                 {/if}
             </div>
         {/each}
+        </div>
+    </div>
+{/if}
+</div>
+
+{#if collectionsExpanded}
+<div class="collection-popup" transition:fly="{flyData}">
+    <div class="collection-container" >
+    {#each data.collections as collection, i}
+        {@const imageIndex = collection.forceFirstTitleImage >= 0 ? collection.forceFirstTitleImage : 0}
+        {@const titleImage = collection.titleImages[imageIndex]}
+        {@const imageClass = selected == i ? "collection-bg-selected" : "collection-bg"}
+        <div class="collection-div">
+            <button class="collection-button" onclick={(e) => {setSelection(i); e.stopPropagation();}}>
+                <img class={imageClass} src={titleImage} alt={collection.title} loading="lazy"/>
+                <p class="small collection-title">{collection.title}</p>
+            </button>
+        </div>
+    {/each}
     </div>
 </div>
+{/if}
+
+{#if collectionsExpanded}
+<div class="overlay" onclickcapture={() => collectionsExpanded = false}></div>
+{/if}
+
+<button class="settings-button" onclick={() => settingsExpanded = true}>
+	<img class="settings-button-image" src={settingsIcon} alt={settingsIcon}/>
+</button>
+
+{#if settingsExpanded}
+<div class="overlay" onclickcapture={() => settingsExpanded = false}></div>
+
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="settings-container" transition:fade>
+    <h4 class="settings-title">Slideshow</h4>
+    {#if slideshowCollectionIndex < 0}
+        <div class="settings-option">
+            <p class="inline-text settings-no-margins">Image duration</p>
+            <input class="settings-input" type="number" min="5" max="600" step="1" value={slideshowInterval} size="5" 
+                onchange={(e) => slideshowInterval = Number((e.target as HTMLInputElement).value ? (e.target as HTMLInputElement).value : 10)}/>
+        </div>
+        <div class="settings-option">
+            <button class="text-button settings-full-width" onclick={() => doSlideshow(true)}>This Collection</button>
+        </div>
+        <div class="settings-option">
+            <button class="text-button settings-full-width" onclick={() => doSlideshow(false)}>All Collections</button>
+        </div>
+    {:else}
+        <div class="settings-option">
+            <button class="text-button settings-full-width" onclick={() => stopSlideshow()}>Stop</button>
+        </div>
+    {/if}
+</div>
+{/if}
 
 
 <style>
@@ -262,6 +388,7 @@
         background-color: #000A;
         text-align: center;
         vertical-align: middle;
+        cursor: pointer;
     }
 
     .item-dot-spacing, .item-dot-spacing-last {
@@ -513,5 +640,153 @@
         text-decoration: none;
         color: beige;
         font-family: Fira-Regular;
+    }
+
+    .collection-popup {
+		grid-area: nav;
+        height: 124px;
+		/* height: 20px; */
+		position: absolute;
+        left: 0;
+        right: 0;
+		bottom: 0;
+        color: beige;
+		font-family: Fira-Regular;
+        background-color: #000A;
+		transition: ease-out 200ms;
+		/* overflow: hidden; */
+		overflow: auto;
+        white-space: nowrap;
+		z-index: 10;
+	}
+
+    .collection-container {
+        padding: 8px;
+        position: relative;
+    }
+
+    .collection-bg, .collection-bg-selected {
+        width: 100%;
+		border-radius: 10px;
+        border: 4px solid transparent;
+        object-fit: cover;
+        filter: brightness(0.65);
+    }
+
+    .collection-bg-selected {
+        border: 4px solid beige;
+    }
+
+    .collection-title {
+        position: absolute;
+        color: beige;
+		padding-top: 4px;
+		padding-left: 10px;
+		font-family: Fira-Regular;
+		text-decoration: none;
+    }
+
+	.collection-select-expanded {
+		transition: ease-out 200ms;
+		background-color:#111C;
+	}
+
+	.collection-div {
+		padding: 4px;
+        display: inline-block;
+        height: 100px;
+	}
+
+	.collection-button {
+        border: none;
+		border-radius: 4px;
+		background: none;
+		width:200px;
+        height:100%;
+        overflow:hidden;
+        display:flex;
+		margin: auto;
+		text-align: center;
+        justify-content: left;
+        vertical-align: middle;
+		cursor: pointer;
+	}
+
+    .settings-container {
+        position: absolute;
+        left: 0;
+        bottom: 38px;
+        width: 200px;
+        background-color: #000A;
+        border-radius: 10px 10px 10px 0px;
+        color: beige;
+        font-family: Fira-Regular;
+        padding-left: 1em;
+        padding-bottom: 1em;
+    }
+
+    .settings-button {
+		position: fixed;
+		left: 0;
+		bottom: 0;
+		padding: 0;
+		margin: 0;
+		padding-top: 3px;
+		width: 40px;
+		height: 38px;
+		background-color: #000A;
+		border: none;
+		text-align: center;
+		vertical-align: middle;
+		border-radius: 10px 10px 10px 0px;
+		cursor: pointer;
+		filter: beige;
+	}
+
+	.settings-button-image {
+		width: auto;
+		height: 80%;
+	}
+
+    .settings-option {
+        position: relative;
+        margin-top: 1em;
+    }
+
+    .settings-no-margins {
+        margin: 0;
+        padding: 0;
+    }
+
+    .settings-input {
+        display: inline-block;
+        position: absolute;
+        right: 1em;
+        text-align: right;
+    }
+
+    .text-button {
+        background-color: #222A;
+        font-family: Fira-Regular;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        color: beige;
+    }
+
+    .text-button:hover {
+        background-color: #666A;
+    }
+
+    .text-button:active {
+        background-color: #222A;
+    }
+
+    .settings-full-width {
+        width: calc(100% - 1em);
+    }
+
+    .inline-text {
+        display: inline-block;
     }
 </style>
