@@ -51,6 +51,7 @@
     let firstImage = $state({} as HTMLImageElement);
     let secondImage = $state({} as HTMLImageElement);
     let changeImageTimerHandle = 0;
+    let wakeLock: WakeLockSentinel | null = null;
 
     let { data }: PageProps = $props();
 
@@ -74,7 +75,6 @@
 
         if (selected == newSelection) {
             imageOrder = getShuffledArray(data.collections[num].titleImages, data.collections[num].forceFirstTitleImage);
-            console.log(imageOrder);
             imageIndex = -1;
             setChangeImageTimer(100);
         }
@@ -86,8 +86,14 @@
         setSelection(newSelection);
     }
 
-    function doSlideshow(thisOnly: boolean)
+    async function doSlideshow(thisOnly: boolean)
     {
+        try {
+            wakeLock = await navigator.wakeLock.request("screen");
+        } catch (err) {
+            wakeLock = null;
+        }
+
         collectionsExpanded = false;
         settingsExpanded = false;
         autoHideNavigation = true;
@@ -101,6 +107,16 @@
 
     function stopSlideshow()
     {
+        if (wakeLock)
+        {
+            try {
+                wakeLock.release();
+            }
+            catch {}
+            
+            wakeLock = null;
+        }
+
         autoHideNavigation = false;
         settingsExpanded = false;
         slideshowCollectionIndex = -1;
