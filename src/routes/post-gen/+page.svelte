@@ -685,7 +685,8 @@
 
     <div class="header">
         <input class="collection-input" id="inputCollection" list="collectionList" placeholder="Collection" 
-            onchangecapture={(e) => e.target != document.activeElement ? setPostCollection(getInputText(e), true) : {}}/>
+            onchangecapture={(e) => e.target != document.activeElement ? setPostCollection(getInputText(e), true) : {}}
+            oninput={(e: any) => !e.inputType || e.inputType == "insertReplacementText" ? setPostCollection(getInputText(e), true) : {}}/>
         <datalist id="collectionList">
             {#each data.collections as collection}
                 <option value={collection.id}></option>
