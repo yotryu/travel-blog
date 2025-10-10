@@ -405,6 +405,9 @@
         dataCopy.images = new Array(postData.images.length);
         dataCopy.contentParagraphs = undefined;
 
+        let folderPath = `BlogData/Photos/${dataCopy.collection}`;
+        let folderId = await requestFolderId(folderPath);
+
         for (let i = 0; i < postData.images.length; ++i)
         {
             if (uploadCanceled)
@@ -415,7 +418,7 @@
             let image = postData.images[i];
             uploadProgress += `Uploading images for '${image.name}'... `;
 
-            let imageData = await uploadImages(image);
+            let imageData = await uploadImages(image, folderId);
             success = !!imageData;
             uploadProgress += (success ? "Success" : "Failed") + "<br>";
 
@@ -427,7 +430,8 @@
             dataCopy.images[i] = imageData;
         }
 
-        let jsonPath = `BlogData/Posts/${dataCopy.collection}/${dataCopy.id}.json`;
+        folderPath = `BlogData/Posts/${dataCopy.collection}`;
+        let jsonPath = `${folderPath}/${dataCopy.id}.json`;
         if (success && !uploadCanceled)
         {
             let json = JSON.stringify(dataCopy);
@@ -435,7 +439,7 @@
 
             uploadProgress += `Uploading '${jsonPath}'... `;
 
-            let success = await uploadFile(jsonPath, encoder.encode(json));
+            let success = await uploadFile(jsonPath, null, encoder.encode(json));
             uploadProgress += success ? "Success" : "Failed";
         }
 
@@ -447,16 +451,22 @@
         uploading = false;
     }
 
-    async function uploadImages(image: ImageRef)
+    async function uploadImages(image: ImageRef, folderId: string | null)
     {
         let imageData: ImageData = { src: "", collageSrc: "", navSrc: "" };
         let nameComponents = image.name.split('.');
         let basePath = nameComponents[0];
+        let folderPath = `BlogData/Photos/${postData.collection}`;
+
+        if (!folderId)
+        {
+            folderId = await requestFolderId(folderPath, true);
+        }
 
         // original
         let buffer = await convertDataURLToBuffer(image.data.src);
-        let path = `BlogData/Photos/${postData.collection}/${image.name}`;
-        let fileId = await uploadFile(path, buffer);
+        let path = `${folderPath}/${image.name}`;
+        let fileId = await uploadFile(path, folderId, buffer);
 
         if (fileId)
         {
@@ -471,7 +481,7 @@
         let newPath = basePath + "_w1000" + "." + nameComponents[1];
         path = `BlogData/Photos/${postData.collection}/${newPath}`;
         buffer = await convertDataURLToBuffer(image.data.collageSrc);
-        fileId = await uploadFile(path, buffer);
+        fileId = await uploadFile(path, folderId, buffer);
 
         if (fileId)
         {
@@ -486,7 +496,7 @@
         newPath = basePath + "_w200" + "." + nameComponents[1];
         path = `BlogData/Photos/${postData.collection}/${newPath}`;
         buffer = await convertDataURLToBuffer(image.data.navSrc);
-        fileId = await uploadFile(path, buffer);
+        fileId = await uploadFile(path, folderId, buffer);
 
         if (fileId)
         {
@@ -536,7 +546,7 @@
         }
     }
 
-    async function uploadFile(path: string, buffer: Uint8Array<ArrayBuffer>)
+    async function uploadFile(path: string, folderId: string | null, buffer: Uint8Array<ArrayBuffer>)
     {
         let existingFileId = await requestFileId(path);
         if (existingFileId)
@@ -547,9 +557,12 @@
 
         let comps = path.split('/');
         let name = comps[comps.length - 1];
-        let folderPath = comps.slice(0, -1).join('/');
 
-        let folderId = await requestFolderId(folderPath, true);
+        if (!folderId)
+        {
+            let folderPath = comps.slice(0, -1).join('/');
+            folderId = await requestFolderId(folderPath, true);
+        }
 
         let metadata = {
             "name": name,
