@@ -233,6 +233,25 @@
         }
     }
 
+    async function gapiRequest(req: gapi.client.RequestOptions)
+    {
+        try
+        {
+            let response = await gapi.client.request(req);
+            return response;
+        }
+        catch (e: any)
+        {
+            if (e.status && (e.status == 404 || e.status == 401))
+            {
+                // these can be due to authentication issues, so try to login again
+                doLogin();
+            }
+        }
+
+        return null;
+    }
+
     async function requestFolderId(path: string, create: boolean = false)
     {
         let paths = path.split('/');
@@ -242,7 +261,7 @@
         {
             let current = paths[i];
             let query = `'${parent}' in parents and name = '${current}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-            let response = await gapi.client.request({
+            let response = await gapiRequest({
                 'path': `/drive/v3/files?q=${encodeURI(query)}`,
                 'method': 'GET'
             });
@@ -266,7 +285,7 @@
                     };
                     let dataStr = JSON.stringify(metadata);
 
-                    let response = await gapi.client.request({
+                    let response = await gapiRequest({
                         'path': '/drive/v3/files',
                         'method': 'POST',
                         'body': dataStr,
@@ -308,7 +327,7 @@
 
         // parent will be the id of the final folder in the path, now query for files in this folder
         let query = `'${parent}' in parents and mimeType != 'application/vnd.google-apps.folder'`;
-        let response = await gapi.client.request({
+        let response = await gapiRequest({
             'path': `/drive/v3/files`,
             'params': {
                 'q': query
@@ -361,7 +380,7 @@
         }
 
         let query = `'${parentId}' in parents and name = '${filename}'`;
-        let response = await gapi.client.request({
+        let response = await gapiRequest({
             'path': `/drive/v3/files`,
             'params': {
                 'q': query
@@ -570,7 +589,7 @@
         };
         let dataStr = JSON.stringify(metadata);
 
-        let response = await gapi.client.request({
+        let response = await gapiRequest({
           'path': '/upload/drive/v3/files?uploadType=resumable',
           'method': 'POST',
           'body': dataStr,
@@ -594,15 +613,23 @@
         {
             // this will fail in localhost because of CORS, so for now catch the error and move on
             // - the request to get the file ID below will kind of validate this anyway... kind of
-            await fetch(uploadURL, {
+            let response = await fetch(uploadURL, {
                 'method': 'PUT',
                 'body': buffer,
                 'headers': {
                     'content-length': buffer.byteLength.toString()
                 }
             });
+
+            if (!response || !response.ok)
+            {
+                // most likely caused by authentication error, so we'll attempt login again
+                doLogin();
+                return null;
+            }
         }
-        catch {}
+        catch
+        {}
 
         existingFileId = await requestFileId(path);
 
@@ -629,6 +656,8 @@
                 }
 
                 authenticated = true;
+
+
             }
         });
 
