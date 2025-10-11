@@ -24,23 +24,23 @@
     let { postNavData } = $props();
 </script>
 
-<nav class:expanded={isExpanded}>
-	<p class="small" onclick={() => isExpanded = !isExpanded}>{postNavData.collection.title}</p>
-	{#if isExpanded}
-	<section in:fade="{fadeIn}" out:fade="{fadeOut}" >
-        <div class="post-container">
-		{#each postNavData.collectionPosts as post}
-			<div class="post-div">
-				<button class="post-button" data-sveltekit-reload >
-					<img class="postbg" src={post.images[0].navSrc} alt={post.title} />
-					<a class="posttitle" href={resolve(`/post/${post.id}`)}>{post.title}</a>
-				</button>
+<div class={"nav-area " + (isExpanded ? "expanded" : "")}>
+	<div class="nav-contents">
+		<button class="collection-button" onclick={() => isExpanded = true}>{postNavData.collection.title}</button>
+		{#if isExpanded}
+			<div class="post-container">
+			{#each postNavData.collectionPosts as post}
+				<div class="post-div">
+					<button class="post-button" data-sveltekit-reload >
+						<img class="postbg" src={post.images[0].navSrc} alt={post.title} />
+						<a class="posttitle" href={resolve(`/post/${post.id}`)}>{post.title}</a>
+					</button>
+				</div>
+			{/each}
 			</div>
-        {/each}
-        </div>
-	</section>
-	{/if}
-</nav>
+		{/if}
+	</div>
+</div>
 
 {#if isExpanded}
 <div class="overlay" onclickcapture={() => isExpanded = false}></div>
@@ -52,14 +52,14 @@
         src: url(/FiraSans-Regular.ttf);
     }
 
-	nav {
+	.nav-area {
 		grid-area: nav;
         width: 220px;
 		/* height: 20px; */
 		position: absolute;
         top: 0;
         left: 0;
-		bottom: 0;
+		/* bottom: 0; */
         color: beige;
 		font-family: Fira-Regular;
         /* background-color:dimgrey; */
@@ -69,20 +69,28 @@
 		z-index: 10;
 	}
 
-	.small {
+	.nav-contents {
+		position: relative;
+		padding: 1em;
+	}
+
+	.collection-button {
         font-size: smaller;
+		width: 100%;
+		text-align: left;
         margin-bottom: 0.5em;
-		margin-left: 1em;
 		margin-right: 1em;
 		padding: 4px;
 		cursor: pointer;
+		color: beige;
 		text-shadow: 0 0 4px #000;
 		border-radius: 4px;
+		border: none;
 		background-color: #0004;
     }
 
     .post-container {
-        padding: 2px 2px;
+		padding-top: 6px;
     }
 
     .postbg {
@@ -109,21 +117,23 @@
 	}
 
 	.post-div {
-		padding: 4px;
+		padding: 4px 0px;
 	}
 
 	.post-button {
 		border: none;
 		border-radius: 4px;
+		padding-block: 0;
+		padding-inline: 0;
 		background: none;
 		width:100%;
         height:50px;
         overflow:hidden;
         display:flex;
-		margin: auto;
-		text-align: center;
-        justify-content: left;
-        vertical-align: middle;
+		/* margin: auto; */
+		/* text-align: center; */
+        /* justify-content: left; */
+        /* vertical-align: middle; */
 		cursor: pointer;
 	}
 
