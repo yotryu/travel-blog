@@ -22,7 +22,7 @@ interface Collection {
     id: string;
     title: string;
     subtitle: string;
-    titleImages: string[];
+    titleImages: PostImage[];
     sortDate: string;
     parent: string;
     posts: string[];
@@ -80,7 +80,7 @@ fileList.forEach((i: string) =>
     }
 
     let collection = postCollections.find(c => c.id == data.collection);
-    collection?.titleImages.push(data.images[0].src);
+    collection?.titleImages.push(data.images[0]);
     collection?.posts.push(path.basename(i).split('.')[0]);
 });
 

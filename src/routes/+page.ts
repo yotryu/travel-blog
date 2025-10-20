@@ -6,7 +6,7 @@ interface Collection {
     subtitle: string;
     sortDate: string;
     forceFirstTitleImage: number;
-    titleImages: string[];
+    titleImages: PostImage[];
     parent: string;
     posts: string[];
 }

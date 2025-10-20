@@ -6,6 +6,12 @@
     import { onMount } from 'svelte';
     import settingsIcon from '$lib/assets/slideshow_icon.svg';
 
+    interface PostImage {
+        src: string;
+        collageSrc: string;
+        navSrc: string;
+    }
+
     function getShuffledArray(array: any[], forceFirst: number): any[]
     {
         let result = [...array];
@@ -55,7 +61,7 @@
 
     let { data }: PageProps = $props();
 
-    let imageOrder: string[] =[];//$state(getShuffledArray(data.collections[selected].titleImages, data.collections[selected].forceFirstTitleImage));
+    let imageOrder: PostImage[] =[];//$state(getShuffledArray(data.collections[selected].titleImages, data.collections[selected].forceFirstTitleImage));
 
 
     function setChangeImageTimer(millis: number)
@@ -174,11 +180,11 @@
 
         if (useFirstImage) {
             // we'll be applying this to the second image
-            secondImage.src = imageOrder[imageIndex];
+            secondImage.src = imageOrder[imageIndex].src;
         }
         else {
             // applying to the first image
-            firstImage.src = imageOrder[imageIndex];
+            firstImage.src = imageOrder[imageIndex].src;
         }
     }
 
@@ -255,26 +261,7 @@
     </div>
 {/if}
 {#if !collectionsExpanded && !autoHideNavigation}
-    <div class="overlay-bottom" transition:fly="{flyData}" >
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div onclick={() => collectionsExpanded = true}>
-        {#each data.collections as collection, i}
-            {@const dotClass = (i == data.collections.length - 1 ? "item-dot-spacing-last" : "item-dot-spacing")}
-            <div class={dotClass}>
-                {#if selected == i}
-                    <div transition:scale class="item-dot-selected"></div>
-                {:else}
-                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div transition:scale class="item-dot tooltip" onclick={(e) => {setSelection(i); e.stopPropagation();}}>
-                        <span class="tooltiptext">{collection.title}</span>
-                    </div>
-                {/if}
-            </div>
-        {/each}
-        </div>
-    </div>
+    <button class="tab-bottom" transition:fly="{flyData}" onclick={() => collectionsExpanded = true}>^</button>
 {/if}
 </div>
 
@@ -283,7 +270,7 @@
     <div class="collection-container" >
     {#each data.collections as collection, i}
         {@const imageIndex = collection.forceFirstTitleImage >= 0 ? collection.forceFirstTitleImage : 0}
-        {@const titleImage = collection.titleImages[imageIndex]}
+        {@const titleImage = collection.titleImages[imageIndex].navSrc}
         {@const imageClass = selected == i ? "collection-bg-selected" : "collection-bg"}
         <div class="collection-div">
             <button class="collection-button" onclick={(e) => {setSelection(i); e.stopPropagation();}}>
@@ -403,6 +390,25 @@
         /* text-shadow: 0 2px 6px #000; */
         background-color: #000A;
         text-align: center;
+        vertical-align: middle;
+        cursor: pointer;
+    }
+
+    .tab-bottom {
+        height: 30px;
+        position: absolute;
+        bottom: 0;
+        left: calc(50% - 20px);
+        width: 50px;
+        padding-top: 0.5em;
+        padding-bottom: 0.5em;
+        color: #f5f5dc;
+        /* text-shadow: 0 2px 6px #000; */
+        border: none;
+        border-radius: 10px 10px 0 0;
+        background-color: #000A;
+        text-align: center;
+        font-size: larger;
         vertical-align: middle;
         cursor: pointer;
     }
