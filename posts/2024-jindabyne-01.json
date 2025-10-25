@@ -1,14 +1,1 @@
-{
-    "id": "2024-jindabyne-01",
-    "date": "2024 March 23",
-    "collection": "2024-jindabyne",
-    "title": "Canberra",
-    "content": "Some info",
-    "images": [
-        {
-            "src": "https://www.dropbox.com/scl/fi/5ikc8lrgmc7z689j2uhn2/IMG_20250809_091949.jpg?rlkey=7bj2f43ddqkrsiecde1n84lql&st=95s365nb&raw=1",
-            "collageSrc": "https://www.dropbox.com/scl/fi/z4jeug72oujsxthw5xy8i/IMG_20250809_091949_w1000.jpg?rlkey=mte997rdd8fpa3khwzybygl35&st=lby1e5v3&raw=1",
-            "navSrc": "https://www.dropbox.com/scl/fi/pdb6g75oyh882kacqjm5p/IMG_20250809_091949_w200.jpg?rlkey=i04bec1splj6lm4gbi1spepvk&st=h24n96pf&raw=1"
-        }
-    ]
-}
+{"id":"2024-jindabyne-01","collection":"2024-jindabyne","date":"2024 March 23","title":"Canberra","content":"Arrived in Canberra, got to the hotel and then went out for the afternoon, walking around sightseeing.\n\nThe city is quaint, though it does feel a little... sterile? Still, was nice to see some of it in person, and the war memorial service was very moving and worth going to.","images":[{"src":"https://lh3.googleusercontent.com/d/1nkRatTD5vLEVhlhru8nIvh1QLqBRUR23?authuser=0","collageSrc":"https://lh3.googleusercontent.com/d/1pVq7vh8OkW8iSyibtGw7upDfuxlVhaks?authuser=0","navSrc":"https://lh3.googleusercontent.com/d/158m3TUn3SkeOmhCKxYOZ6SrR0MC9NFCr?authuser=0"},{"src":"https://lh3.googleusercontent.com/d/1ZqbNBZFgV7n1XBLmMOpQ_B2cwEloetcn?authuser=0","collageSrc":"https://lh3.googleusercontent.com/d/1aDT1F_a0ib2PlVIElfW0d2yyltf7PXGx?authuser=0","navSrc":"https://lh3.googleusercontent.com/d/1VscpVUmaJF0eOUwdzYL_M1fWjc_3yvjG?authuser=0"},{"src":"https://lh3.googleusercontent.com/d/1UIQ17jEKGpCM4A5qGRKvjZsF4NLy-k3L?authuser=0","collageSrc":"https://lh3.googleusercontent.com/d/1ig9tVeSClvxkm4hDXIQfgkjQP4dPcJFJ?authuser=0","navSrc":"https://lh3.googleusercontent.com/d/15MrlBJDsaGM3TmotDjcQMn1KCLx06d9h?authuser=0"},{"src":"https://lh3.googleusercontent.com/d/1P440QXY1Qg1w2vjYcFgi2w69FTOsfirR?authuser=0","collageSrc":"https://lh3.googleusercontent.com/d/1mwE_eVUinK40eW7HLb74sOvB83MZi853?authuser=0","navSrc":"https://lh3.googleusercontent.com/d/18JGTsWSy4kygUC6gVlC1eQyh3jTzL4Q8?authuser=0"},{"src":"https://lh3.googleusercontent.com/d/1IMoTtcdm1aPS8Rcj54-KRGeo-popXtGw?authuser=0","collageSrc":"https://lh3.googleusercontent.com/d/1D19nDraUHeGirO3zFtlTWZFvJrCBmqfG?authuser=0","navSrc":"https://lh3.googleusercontent.com/d/1CJ8m-otRQtTlLfv5jEVIujacmbfB0Ifa?authuser=0"}]}
