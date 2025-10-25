@@ -5,6 +5,7 @@
     import { resolve } from '$app/paths';
     import { onMount } from 'svelte';
     import settingsIcon from '$lib/assets/slideshow_icon.svg';
+    import upIcon from '$lib/assets/up_icon.svg';
 
     interface PostImage {
         src: string;
@@ -257,11 +258,19 @@
         <div class="header" data-sveltekit-reload>
             <h1 class="title"><a href={resolve(`/collection/${collection.id}`)}>{collection.title}</a></h1>
             <h3 class="small">{collection.subtitle}</h3>
+
+            {#if !autoHideNavigation}
+                <button class="basic-button">
+                    <a href={resolve(`/collection/${collection.id}`)}>View</a>
+                </button>
+            {/if}
         </div>
     </div>
 {/if}
 {#if !collectionsExpanded && !autoHideNavigation}
-    <button class="tab-bottom" transition:fly="{flyData}" onclick={() => collectionsExpanded = true}>^</button>
+    <button class="tab-bottom" transition:fly="{flyData}" onclick={() => collectionsExpanded = true}>
+        <img class="tab-button-image" src={upIcon} alt={upIcon}/>
+    </button>
 {/if}
 </div>
 
@@ -400,8 +409,8 @@
         bottom: 0;
         left: calc(50% - 20px);
         width: 50px;
-        padding-top: 0.5em;
-        padding-bottom: 0.5em;
+        padding-top: 5px;
+        /* padding-bottom: 0.5em; */
         color: #f5f5dc;
         /* text-shadow: 0 2px 6px #000; */
         border: none;
@@ -412,6 +421,11 @@
         vertical-align: middle;
         cursor: pointer;
     }
+
+    .tab-button-image {
+		width: auto;
+		height: 90%;
+	}
 
     .item-dot-spacing, .item-dot-spacing-last {
         display: inline-block;
@@ -457,6 +471,23 @@
         width: 200px;
         height: 100px;
         background-color: beige;
+    }
+
+    .basic-button {
+        background-color: #444A;
+        font-family: Fira-Regular;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        color: beige;
+    }
+
+    .basic-button:hover {
+        background-color: #666A;
+    }
+
+    .basic-button:active {
+        background-color: #444A;
     }
 
     /* Tooltip container */
@@ -513,6 +544,7 @@
     .small {
         font-size: medium;
         margin-top: 0.5em;
+        margin-bottom: 0.5em;
         text-shadow: 0 0 4px #000;
     }
 
