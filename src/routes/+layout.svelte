@@ -4,9 +4,13 @@
 	import exitFullscreenIcon from '$lib/assets/exit_fullscreen_icon.svg';
 
 	let { children } = $props();
+	
+	// state
 	let fullscreenElement = $state(null);
 	let inFullscreen = $derived(!!fullscreenElement);
 
+
+	// Helper to toggle fullscreen mode.
 	function toggleFullscreen()
 	{
 		let elem = document.documentElement;
@@ -21,14 +25,18 @@
 	}
 </script>
 
+<!-- Bind to the fullscreenElement so we can get state updates when it changes -->
 <svelte:document bind:fullscreenElement={fullscreenElement}/>
 
+<!-- favicon -->
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+<!-- Render child content -->
 {@render children?.()}
 
+<!-- Overlay our fullscreen request / exit button, showing appropriate icon for current state -->
 <button class="fullscreen-button" onclick={toggleFullscreen}>
 	{#if inFullscreen}
 		<img class="button-image" src={exitFullscreenIcon} alt={exitFullscreenIcon}/>

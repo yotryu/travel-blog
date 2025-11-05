@@ -1,35 +1,24 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
-    import { fade } from 'svelte/transition';
 	import { resolve } from '$app/paths';
-	
-	const fadeIn = {
-		delay: 100,
-		duration: 200
-	}
-	
-	const fadeOut = {
-		delay: 0,
-		duration: 100
-	}
 
+	// state
 	let isExpanded = $state(false);
-
-	function navToPage(url: string)
-	{
-		goto(url);
-		isExpanded = false;
-	}
 	
+	// prop data
     let { postNavData } = $props();
 </script>
 
+<!-- Nav content -->
 <div class={"nav-area " + (isExpanded ? "expanded" : "")}>
 	<div class="nav-contents">
+		<!-- Button to expand nav content also contains the collection title -->
 		<button class="collection-button" onclick={() => isExpanded = true}>{postNavData.collection.title}</button>
 		{#if isExpanded}
+			<!-- Expanded content -->
 			<div class="post-container">
 			{#each postNavData.collectionPosts as post}
+				<!-- Posts are buttons with their primary image displayed, and the post title as a link. -->
+				<!-- We use data-sveltekit-reload on the button, otherwise navigation doesn't work properly. -->
 				<div class="post-div">
 					<button class="post-button" data-sveltekit-reload >
 						<img class="postbg" src={post.images[0].navSrc} alt={post.title} />
@@ -42,6 +31,7 @@
 	</div>
 </div>
 
+<!-- While navigation is expanded, clicking outside it closes -->
 {#if isExpanded}
 <div class="overlay" onclickcapture={() => isExpanded = false}></div>
 {/if}
@@ -55,16 +45,12 @@
 	.nav-area {
 		grid-area: nav;
         width: 220px;
-		/* height: 20px; */
 		position: absolute;
         top: 0;
         left: 0;
-		/* bottom: 0; */
         color: beige;
 		font-family: Fira-Regular;
-        /* background-color:dimgrey; */
 		transition: ease-out 200ms;
-		/* overflow: hidden; */
 		overflow: auto;
 		z-index: 10;
 	}
@@ -130,10 +116,6 @@
         height:50px;
         overflow:hidden;
         display:flex;
-		/* margin: auto; */
-		/* text-align: center; */
-        /* justify-content: left; */
-        /* vertical-align: middle; */
 		cursor: pointer;
 	}
 
