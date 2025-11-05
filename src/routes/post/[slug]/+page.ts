@@ -1,53 +1,41 @@
 import type { PageLoad } from './$types';
+import type { Collection, Post } from '$lib/types';
 
-interface Collection {
-    id: string;
-    title: string;
-    parent: string;
-    posts: string[];
-}
-
-interface PostImage {
-    src: string;
-    collageSrc: string;
-    navSrc: string;
-}
-
-interface Post {
-    id: string;
-    date: string;
-    collection: string;
-    title: string;
-    content: string;
-    contentParagraphs: string[]; // generated
-    images: PostImage[];
-}
 
 export const load: PageLoad = async ({ fetch, params }) => {
+    // Fetch our post json
     let path = `/posts/${params.slug}.json`;
     let postData = await fetch(path);
     let json = await postData.json() as Post;
 
+    // Grab our individual paragraphs and capture the ID
     json.contentParagraphs = json.content.split("\n");
     json.id = params.slug;
 
+    // Fetch this post's collection data from the master list
     let allCollectionsData = await fetch("/collections/all.json");
     let allCollections = await allCollectionsData.json() as Collection[];
     let thisCollection = allCollections.find(i => i.id == json.collection);
 
+    // If the collection is missing, return unknown / empty post info
     if (!thisCollection)
     {
         thisCollection = {
             id: "unknown",
             posts: [],
             title: "Unknown",
-            parent: ""
+            parent: "",
+            forceFirstTitleImage: -1,
+            sortDate: "",
+            subtitle: "",
+            titleImages: []
         };
     }
 
     let collectionPosts: Post[] = [];
     let postPromises: Promise<Response>[] = [];
 
+    // Fetch all the collection's posts so we can setup navigation (prev and next)
     thisCollection?.posts.forEach(i =>
     {
         let id = i;
@@ -57,8 +45,10 @@ export const load: PageLoad = async ({ fetch, params }) => {
         postPromises.push(p);
     });
 
+    // Wait for all
     await Promise.all(postPromises);
 
+    // Sort the collection posts by ID so we are always in the correct order
     collectionPosts = collectionPosts.sort((a, b) =>
     {
         let ia = thisCollection.posts.findIndex(i => i == a.id);
@@ -67,6 +57,7 @@ export const load: PageLoad = async ({ fetch, params }) => {
         return ia > ib ? 1 : ib > ia ? -1 : 0;
     });
 
+    // Return post and collection information
 	return {
 		post: json,
         collection: thisCollection,

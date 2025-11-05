@@ -1,35 +1,15 @@
 import type { PageLoad } from './$types';
+import type { Collection, Post } from '$lib/types';
 
-interface Collection {
-    id: string;
-    title: string;
-    subtitle: string;
-    parent: string;
-    posts: string[];
-}
-
-interface PostImage {
-    src: string;
-    collageSrc: string;
-    navSrc: string;
-}
-
-interface Post {
-    id: string;
-    date: string;
-    collection: string;
-    title: string;
-    content: string;
-    contentParagraphs: string[]; // generated
-    images: PostImage[];
-}
 
 export const load: PageLoad = async ({ fetch, params }) => {
+    // Find the collection in the master json
     let path = `/collections/all.json`;
     let postData = await fetch(path);
     let allCollections = await postData.json() as Collection[];
     let thisCollection = allCollections.find(i => i.id == params.slug);
 
+    // If we don't have it somehow, return null
     if (!thisCollection)
     {
         return {
@@ -41,6 +21,7 @@ export const load: PageLoad = async ({ fetch, params }) => {
     let collectionPosts: Post[] = [];
     let postPromises: Promise<Response>[] = [];
 
+    // Fetch all post jsons so we can display title and images from them
     thisCollection.posts.forEach(i =>
     {
         let id = i;
@@ -50,8 +31,10 @@ export const load: PageLoad = async ({ fetch, params }) => {
         postPromises.push(p);
     });
 
+    // Wait for all to be available
     await Promise.all(postPromises);
 
+    // Sort posts by ID - these will typically be alphabetical
     collectionPosts = collectionPosts.sort((a, b) =>
     {
         let ia = thisCollection.posts.findIndex(i => i == a.id);
@@ -60,6 +43,7 @@ export const load: PageLoad = async ({ fetch, params }) => {
         return ia > ib ? 1 : ib > ia ? -1 : 0;
     });
 
+    // Return this collection and all the posts, sorted
     return {
         collection: thisCollection,
         collectionPosts: collectionPosts

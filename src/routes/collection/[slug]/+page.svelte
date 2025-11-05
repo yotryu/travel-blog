@@ -1,27 +1,27 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
-    import { fade, fly } from 'svelte/transition';
-    import { goto } from '$app/navigation';
+    import { fade } from 'svelte/transition';
     import { resolve } from '$app/paths';
-    import { swipe, type SwipeCustomEvent } from 'svelte-gestures';
-    import ImageCollage from '$lib/image-collage.svelte';
-    import PostNavigation from '$lib/post-navigation.svelte';
 
+    // state
     let innerWidth = $state(0);
     let innerHeight = $state(0);
     let isPortrait = $derived(innerWidth <= innerHeight);
-    let isUltrawide = $derived(innerWidth / innerHeight >= 2);
     let postClass = $derived(isPortrait ? "image-button-portrait" : "image-button");
-
-    let { data }: PageProps = $props();
     let hoverIndex = $state(-1);
+
+    // prop data
+    let { data }: PageProps = $props();
 </script>
 
+<!-- Bind innerWidth and innerHeight so we can adapt the layout based on aspect ratio -->
 <svelte:window bind:innerWidth bind:innerHeight />
 
+<!-- Main content -->
 {#if data.collection}
-
 <div class="overlay">
+    <!-- Posts are simply a collection of buttons with orientation-specific class derived from our -->
+    <!-- width and height / aspect ratio. -->
     {#each data.collectionPosts as post, i}
         <button class={postClass} onmouseenter={() => hoverIndex = i} onclick={() => window.location.assign(resolve(`/post/${post.id}`))}>
             <img src={post.images[0].collageSrc} alt={post.images[0].collageSrc} />
@@ -29,6 +29,8 @@
         </button>
     {/each}
 </div>
+
+<!-- Add our collection header with subtitle -->
 <div class="header">
     <h1 class="title">{data.collection.title}</h1>
     <h3 class="small">{data.collection.subtitle}</h3>
@@ -65,7 +67,6 @@
         height: 100%;
         object-fit: cover;
         background-color: #777;
-        /* filter: brightness(0.5); */
     }
 
     .image-button, .image-button-portrait {
@@ -101,7 +102,6 @@
         padding-bottom: 0.75em;
         color: #f5f5dc;
         text-shadow: 0 2px 6px #000;
-        /* background-color: #0003; */
     }
 
     .small {
@@ -125,136 +125,5 @@
         font-family: Fira-Regular;
         text-shadow: 0 2px 6px #000;
         text-align: left;
-    }
-
-    .content-container,
-    .content-container-portrait,
-    .edge-container,
-    .edge-container-portrait {
-        position: absolute;
-        bottom: 0;
-        top: 0;
-        padding: 0.5em 2em;
-        overflow: scroll;
-        scrollbar-width: none;
-        background: #111E;
-        border-radius: 10px 0 0 10px;
-        transition: ease-out 200ms;
-    }
-
-    .content-container-portrait,
-    .edge-container-portrait {
-        top: unset;
-        left: 0;
-        right: 0;
-        border-radius: 10px 10px 0 0;
-    }
-
-    .expanded {
-        left: 65%;
-        right: 0;
-    }
-
-    .expanded-ultrawide {
-        left: 60%;
-        right: 0;
-    }
-
-    .expanded-portrait {
-        max-height: 70vh;
-    }
-
-    .edge-container,
-    .edge-container-portrait {
-        right: 0;
-        width: 30px;
-        background: #111C;
-        padding: unset;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: grey;
-        cursor: pointer;
-        font-family: Fira-Regular;
-        font-size: large;
-    }
-
-    .edge-container-portrait {
-        width: unset;
-        height: 38px;
-    }
-
-    .content {
-        overflow: scroll;
-        scrollbar-width: none;
-        /* position: relative; */
-        /* bottom: 100px; */
-        /* top: 0; */
-        /* bottom: 3em; */
-        padding-right: 1em;
-        border-bottom: 1px solid beige;
-    }
-
-    .content-bottom {
-        position: fixed;
-        bottom: 1em;
-    }
-
-    .left-align {
-        text-align: left;
-    }
-
-    .right-align {
-        text-align: right;
-        width: 100%;
-    }
-
-    .nav-button-prev,
-    .nav-button-next {
-		border: none;
-        border-radius: 6px;
-		background: none;
-		width:100%;
-        height:50px;
-        overflow:hidden;
-        display:flex;
-		/* margin: auto; */
-        padding: 0;
-		text-align: left;
-        justify-content: left;
-        vertical-align: middle;
-		cursor: pointer;
-	}
-
-    .nav-button-next {
-        text-align: right;
-        justify-content: right;
-    }
-
-    .nav-title-prev,
-    .nav-title-next {
-        position: absolute;
-        color: beige;
-		padding-top: 10px;
-		padding-left: 10px;
-		font-family: Fira-Regular;
-		text-decoration: none;
-    }
-
-    .nav-title-next {
-        padding-right: 10px;
-    }
-
-    .nav-bg {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        filter: brightness(0.65);
-    }
-
-    a {
-        text-decoration: none;
-        color: beige;
-        font-family: Fira-Regular;
     }
 </style>

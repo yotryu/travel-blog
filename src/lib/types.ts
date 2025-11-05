@@ -14,3 +14,13 @@ export interface Collection {
     parent: string;
     posts: string[];
 }
+
+export interface Post {
+    id: string;
+    date: string;
+    collection: string;
+    title: string;
+    content: string;
+    contentParagraphs: string[]; // generated
+    images: PostImage[];
+}
