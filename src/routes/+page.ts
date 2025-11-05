@@ -1,31 +1,6 @@
 import type { PageLoad } from './$types';
+import type { Collection } from '$lib/types';
 
-interface Collection {
-    id: string;
-    title: string;
-    subtitle: string;
-    sortDate: string;
-    forceFirstTitleImage: number;
-    titleImages: PostImage[];
-    parent: string;
-    posts: string[];
-}
-
-interface PostImage {
-    src: string;
-    collageSrc: string;
-    navSrc: string;
-}
-
-interface Post {
-    id: string;
-    date: string;
-    collection: string;
-    title: string;
-    content: string;
-    contentParagraphs: string[]; // generated
-    images: PostImage[];
-}
 
 export const load: PageLoad = async ({ fetch, params }) => {
     let path = `/collections/all.json`;

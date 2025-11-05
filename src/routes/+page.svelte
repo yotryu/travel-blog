@@ -1,18 +1,42 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
-    import { crossfade, fade, fly, scale } from 'svelte/transition';
-    import { swipe, type SwipeCustomEvent } from 'svelte-gestures';
+    import type { PostImage } from '$lib/types';
+    import { fade, fly } from 'svelte/transition';
     import { resolve } from '$app/paths';
     import { onMount } from 'svelte';
     import settingsIcon from '$lib/assets/slideshow_icon.svg';
     import upIcon from '$lib/assets/up_icon.svg';
 
-    interface PostImage {
-        src: string;
-        collageSrc: string;
-        navSrc: string;
-    }
 
+    // common data
+    const flyData = { duration: 200, y: 100, opactiy: 0 };
+
+    // state
+    let selected = $state(0);
+    let autoHideNavigation = $state(false);
+    let collectionsExpanded = $state(false);
+    let settingsExpanded = $state(false);
+    let slideshowCollectionIndex = $state(-1);
+    let slideshowInterval = $state(10);
+    let slideshowCollections = $state([] as any[]);
+    let useFirstImage = $state(false);
+    let useSecondImage = $state(false);
+    let firstImage = $state({} as HTMLImageElement);
+    let secondImage = $state({} as HTMLImageElement);
+
+    // basic vars
+    let imageIndex = -1;
+    let lastChange = Date.now();
+    let changeImageTimerHandle = 0;
+    let wakeLock: WakeLockSentinel | null = null;
+    let imageOrder: PostImage[] =[];
+
+    // prop data
+    let { data }: PageProps = $props();
+
+
+    // Custom shuffle function which optionally forces a certain element to be first.
+    // Collections usually have a forced first image, so this ensures that image is the first in the shuffled array.
     function getShuffledArray(array: any[], forceFirst: number): any[]
     {
         let result = [...array];
@@ -37,34 +61,7 @@
         return result;
     }
 
-    const flyData = { duration: 200, y: 100, opactiy: 0 };
-
-    let innerWidth = $state(0);
-    let innerHeight = $state(0);
-    let isPortrait = $derived(innerWidth <= innerHeight);
-    let isUltrawide = $derived(innerWidth / innerHeight >= 2);
-    let postClass = $derived(isPortrait ? "image-button-portrait" : "image-button");
-    let selected = $state(0);
-    let autoHideNavigation = $state(false);
-    let collectionsExpanded = $state(false);
-    let settingsExpanded = $state(false);
-    let slideshowCollectionIndex = $state(-1);
-    let slideshowInterval = $state(10);
-    let slideshowCollections = $state([] as any[]);
-    let imageIndex = -1;
-    let lastChange = Date.now();
-    let useFirstImage = $state(false);
-    let useSecondImage = $state(false);
-    let firstImage = $state({} as HTMLImageElement);
-    let secondImage = $state({} as HTMLImageElement);
-    let changeImageTimerHandle = 0;
-    let wakeLock: WakeLockSentinel | null = null;
-
-    let { data }: PageProps = $props();
-
-    let imageOrder: PostImage[] =[];//$state(getShuffledArray(data.collections[selected].titleImages, data.collections[selected].forceFirstTitleImage));
-
-
+    // Clear and Set a new image change timer.
     function setChangeImageTimer(millis: number)
     {
         if (changeImageTimerHandle)
@@ -75,6 +72,7 @@
         changeImageTimerHandle = setTimeout(() => changeImage(), millis);
     }
 
+    // Set a new current collection selection, and calculate a new image shuffle order.
     function setSelection(num: number)
     {
         const newSelection = num;
@@ -87,12 +85,15 @@
         }
     }
 
+    // Helper for adjusting selection by an offset.
     function changeSelection(offset: number)
     {
         const newSelection = selected + offset;
         setSelection(newSelection);
     }
 
+    // Start a slideshow, setting state to show only what we need for this mode.
+    // TODO: Support all slideshow modes.
     async function doSlideshow(thisOnly: boolean)
     {
         try {
@@ -112,6 +113,7 @@
         setChangeImageTimer(100);
     }
 
+    // Exist slideshow mode.
     function stopSlideshow()
     {
         if (wakeLock)
@@ -131,18 +133,7 @@
         setChangeImageTimer(100);
     }
 
-    function swipeHandler(event: SwipeCustomEvent)
-    {
-        if (event.detail.direction == 'right')
-        {
-            changeSelection(-1);
-        }
-        else if (event.detail.direction == 'left')
-        {
-            changeSelection(1);
-        }
-    }
-
+    // Support for scrolling through collections using scroll wheel / touch swipe
     function wheelHandler(event: WheelEvent)
     {
         const minTime = 300;
@@ -175,9 +166,10 @@
         }
     }
 
+    // Increment image to show and request the change with the next internal image container.
+    // Once the image is loaded, we switch image container to show which causes a transition between them.
     function changeImage() {
         imageIndex = (imageIndex + 1) % imageOrder.length;
-        //changeImageTimerHandle = 0;
 
         if (useFirstImage) {
             // we'll be applying this to the second image
@@ -189,20 +181,26 @@
         }
     }
 
+    // Utility function to consolidate image duration based on mode.
     function getImageChangeTime()
     {
         return slideshowCollectionIndex >= 0 ? slideshowInterval * 1000 : 10000;
     }
 
+    // Callback for "first" image being loaded ("first" image container).
     function onFirstImageLoaded()
     {
+        // Image loaded, so update our state to show this image, and set our next timer.
         useFirstImage = true;
         useSecondImage = false;
         setChangeImageTimer(getImageChangeTime());
     }
 
+    // Callback for "first" image load error.
     function onFirstImageError()
     {
+        // Usually this results in the container being in a bad state,
+        // so construct a new one and request the image again after 1s.
         firstImage = new Image();
         firstImage.onload = onFirstImageLoaded;
         firstImage.onerror = onFirstImageError;
@@ -210,15 +208,20 @@
         setChangeImageTimer(1000);
     }
 
+    // Callback for "second" image being loaded ("second" image container).
     function onSecondImageLoaded()
     {
+        // Image loaded, so update our state to show this image, and set our next timer.
         useFirstImage = false;
         useSecondImage = true;
         setChangeImageTimer(getImageChangeTime());
     }
 
+    // Callback for "second" image load error.
     function onSecondImageError()
     {
+        // Usually this results in the container being in a bad state,
+        // so construct a new one and request the image again after 1s.
         secondImage = new Image();
         secondImage.onload = onSecondImageLoaded;
         secondImage.onerror = onSecondImageError;
@@ -226,7 +229,9 @@
         setChangeImageTimer(1000);
     }
 
+
     onMount(() => {
+        // Init our image containers
         firstImage = new Image();
         firstImage.onload = onFirstImageLoaded;
         firstImage.onerror = onFirstImageError;
@@ -235,17 +240,22 @@
         secondImage.onload = onSecondImageLoaded;
         secondImage.onerror = onSecondImageError;
 
+        // Select first collection, which will request our first image
         setSelection(0);
     });
 </script>
 
-<svelte:window bind:innerWidth bind:innerHeight on:wheel={(e) => wheelHandler(e)} />
 
+<!-- Add handler for scrolling to control collection navigation -->
+<svelte:window on:wheel={(e) => wheelHandler(e)} />
 
+<!-- Main content -->
 <div class="overlay" >
 {#if selected >= 0 || (slideshowCollectionIndex >= 0 && slideshowCollections.length > 0)}
     {@const collection = slideshowCollectionIndex >= 0 ? slideshowCollections[slideshowCollectionIndex] : data.collections[selected]}
     <div transition:fade class="collection-page" id="image-root">
+
+        <!-- Handle which image to display, with fade transitions -->
         {#if useFirstImage && firstImage}
             <div transition:fade={{duration: 1000}} class="overlay">
                 <img class="collection-image" src={firstImage.src} alt={firstImage.src}/>
@@ -255,10 +265,13 @@
                 <img transition:fade class="collection-image" src={secondImage.src} alt={secondImage.src}/>
             </div>
         {/if}
+
+        <!-- Our header for the current collection -->
         <div class="header" data-sveltekit-reload>
             <h1 class="title"><a href={resolve(`/collection/${collection.id}`)}>{collection.title}</a></h1>
             <h3 class="small">{collection.subtitle}</h3>
 
+            <!-- Explicit "view" button to aid with navigation - gets hidden in slideshow mode -->
             {#if !autoHideNavigation}
                 <button class="basic-button">
                     <a href={resolve(`/collection/${collection.id}`)}>View</a>
@@ -267,6 +280,8 @@
         </div>
     </div>
 {/if}
+
+<!-- Collection selection show tab button -->
 {#if !collectionsExpanded && !autoHideNavigation}
     <button class="tab-bottom" transition:fly="{flyData}" onclick={() => collectionsExpanded = true}>
         <img class="tab-button-image" src={upIcon} alt={upIcon}/>
@@ -274,6 +289,7 @@
 {/if}
 </div>
 
+<!-- Collection selection panel -->
 {#if collectionsExpanded}
 <div class="collection-popup" transition:fly="{flyData}">
     <div class="collection-container" >
@@ -283,6 +299,7 @@
         {@const imageClass = selected == i ? "collection-bg-selected" : "collection-bg"}
         <div class="collection-div">
             <button class="collection-button" onclick={(e) => {setSelection(i); e.stopPropagation();}}>
+                <!-- Lazy load the images, otherwise we will encounter request limit issues -->
                 <img class={imageClass} src={titleImage} alt={collection.title} loading="lazy"/>
                 <p class="small collection-title">{collection.title}</p>
             </button>
@@ -292,21 +309,25 @@
 </div>
 {/if}
 
+<!-- When collection selection panel is open, click anywhere outside it to close it -->
 {#if collectionsExpanded}
 <div class="overlay" onclickcapture={() => collectionsExpanded = false}></div>
 {/if}
 
+<!-- Settings button (in corner) -->
 <button class="settings-button" onclick={() => settingsExpanded = true}>
 	<img class="settings-button-image" src={settingsIcon} alt={settingsIcon}/>
 </button>
 
+<!-- When settings panel is open, click outside it to close -->
 {#if settingsExpanded}
 <div class="overlay" onclickcapture={() => settingsExpanded = false}></div>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- Settings panel -->
 <div class="settings-container" transition:fade>
     <h4 class="settings-title">Slideshow</h4>
+
+    <!-- TODO: support more options, several collections, configs per type of slideshow? -->
     {#if slideshowCollectionIndex < 0}
         <div class="settings-option">
             <p class="inline-text settings-no-margins">Image duration</p>
@@ -355,20 +376,6 @@
         overflow: hidden;
     }
 
-    .collection-line {
-        width: 100%;
-        height: 100px;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .line-image {
-        width: 200px;
-        height: 100%;
-        object-fit: cover;
-        display: inline-block;
-    }
-
     .collection-page {
         width: 100%;
         height: 100%;
@@ -384,23 +391,6 @@
         object-fit: cover;
         background-color: #000;
         position: relative;
-        /* filter: brightness(0.5); */
-    }
-
-    .overlay-bottom {
-        height: 100;
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding-top: 0.7em;
-        padding-bottom: 0.5em;
-        color: #f5f5dc;
-        /* text-shadow: 0 2px 6px #000; */
-        background-color: #000A;
-        text-align: center;
-        vertical-align: middle;
-        cursor: pointer;
     }
 
     .tab-bottom {
@@ -410,9 +400,7 @@
         left: calc(50% - 20px);
         width: 50px;
         padding-top: 5px;
-        /* padding-bottom: 0.5em; */
         color: #f5f5dc;
-        /* text-shadow: 0 2px 6px #000; */
         border: none;
         border-radius: 10px 10px 0 0;
         background-color: #000A;
@@ -426,52 +414,6 @@
 		width: auto;
 		height: 90%;
 	}
-
-    .item-dot-spacing, .item-dot-spacing-last {
-        display: inline-block;
-        position: relative;
-        width: 15px;
-        height: 15px;
-        margin-right: 0.5em;
-    }
-
-    .item-dot-spacing-last {
-        margin-right: 0;
-    }
-
-    .item-dot {
-        display: inline-block;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-bottom: 1px;
-        border: 2px solid beige;
-        cursor: pointer;
-    }
-
-    .item-dot-selected {
-        display: inline-block;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background-color: beige;
-    }
-
-    .preview {
-        position: absolute;
-        display: inline-block;
-        left: -100px;
-        top: -100px;
-        width: 200px;
-        height: 100px;
-        background-color: beige;
-    }
 
     .basic-button {
         background-color: #444A;
@@ -488,57 +430,6 @@
 
     .basic-button:active {
         background-color: #444A;
-    }
-
-    /* Tooltip container */
-    .tooltip {
-        position: relative;
-        display: inline-block;
-    }
-
-    /* Tooltip text */
-    .tooltiptext, .tooltiptext-selected {
-        visibility: hidden;
-        width: 200px;
-        background-color: beige;
-        color: #000;
-        text-align: center;
-        font-family: Fira-Regular;
-        padding: 5px 0;
-        border-radius: 6px;
-
-        /* Position the tooltip text */
-        position: absolute;
-        z-index: 1;
-        bottom: 22px;
-        left: 50%;
-        margin-left: -100px;
-
-        /* Fade in tooltip */
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-
-    .tooltiptext-selected {
-        bottom: 26px;
-    }
-
-    /* Tooltip arrow */
-    .tooltiptext::after, .tooltiptext-selected::after {
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -10px;
-        border-width: 10px;
-        border-style: solid;
-        border-color: beige transparent transparent transparent;
-    }
-
-    /* Show the tooltip text when you mouse over the tooltip container */
-    .tooltip:hover .tooltiptext, .tooltip:hover .tooltiptext-selected {
-        visibility: visible;
-        opacity: 1;
     }
 
     .small {
@@ -565,131 +456,6 @@
         text-align: left;
     }
 
-    .content-container,
-    .content-container-portrait,
-    .edge-container,
-    .edge-container-portrait {
-        position: absolute;
-        bottom: 0;
-        top: 0;
-        padding: 0.5em 2em;
-        overflow: scroll;
-        scrollbar-width: none;
-        background: #111E;
-        border-radius: 10px 0 0 10px;
-        transition: ease-out 200ms;
-    }
-
-    .content-container-portrait,
-    .edge-container-portrait {
-        top: unset;
-        left: 0;
-        right: 0;
-        border-radius: 10px 10px 0 0;
-    }
-
-    .expanded {
-        left: 65%;
-        right: 0;
-    }
-
-    .expanded-ultrawide {
-        left: 60%;
-        right: 0;
-    }
-
-    .expanded-portrait {
-        max-height: 70vh;
-    }
-
-    .edge-container,
-    .edge-container-portrait {
-        right: 0;
-        width: 30px;
-        background: #111C;
-        padding: unset;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: grey;
-        cursor: pointer;
-        font-family: Fira-Regular;
-        font-size: large;
-    }
-
-    .edge-container-portrait {
-        width: unset;
-        height: 40px;
-    }
-
-    .content {
-        overflow: scroll;
-        scrollbar-width: none;
-        /* position: relative; */
-        /* bottom: 100px; */
-        /* top: 0; */
-        /* bottom: 3em; */
-        padding-right: 1em;
-        border-bottom: 1px solid beige;
-    }
-
-    .content-bottom {
-        position: fixed;
-        bottom: 1em;
-    }
-
-    .left-align {
-        text-align: left;
-    }
-
-    .right-align {
-        text-align: right;
-        width: 100%;
-    }
-
-    .nav-button-prev,
-    .nav-button-next {
-		border: none;
-        border-radius: 6px;
-		background: none;
-		width:100%;
-        height:50px;
-        overflow:hidden;
-        display:flex;
-		/* margin: auto; */
-        padding: 0;
-		text-align: left;
-        justify-content: left;
-        vertical-align: middle;
-		cursor: pointer;
-	}
-
-    .nav-button-next {
-        text-align: right;
-        justify-content: right;
-    }
-
-    .nav-title-prev,
-    .nav-title-next {
-        position: absolute;
-        color: beige;
-		padding-top: 10px;
-		padding-left: 10px;
-		font-family: Fira-Regular;
-		text-decoration: none;
-    }
-
-    .nav-title-next {
-        padding-right: 10px;
-    }
-
-    .nav-bg {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        filter: brightness(0.65);
-    }
-
     a {
         text-decoration: none;
         color: beige;
@@ -699,7 +465,6 @@
     .collection-popup {
 		grid-area: nav;
         height: 124px;
-		/* height: 20px; */
 		position: absolute;
         left: 0;
         right: 0;
@@ -708,7 +473,6 @@
 		font-family: Fira-Regular;
         background-color: #000A;
 		transition: ease-out 200ms;
-		/* overflow: hidden; */
 		overflow: auto;
         white-space: nowrap;
 		z-index: 10;
@@ -739,11 +503,6 @@
 		font-family: Fira-Regular;
 		text-decoration: none;
     }
-
-	.collection-select-expanded {
-		transition: ease-out 200ms;
-		background-color:#111C;
-	}
 
 	.collection-div {
 		padding: 4px;
