@@ -1,14 +1,18 @@
+<!-- Handles layout of images in a fullscreen collage format -->
 <script lang="ts">
     import ImageGallery from '$lib/image-gallery.svelte';
 
+    // prop data
 	let { imagesData } = $props();
     let imageCount = $derived(imagesData.length);
 
+    // state
     let innerWidth = $state(0);
     let innerHeight = $state(0);
     let isPortrait = $derived(innerWidth <= innerHeight);
     let showImageAtIndex = $state(-1);
 
+    // Simple interface to define image bounds in each config
     interface Rect {
         left: number;
         top: number;
@@ -16,12 +20,14 @@
         bottom: number;
     }
 
+    // Defines a specific config for image display based on aspect ratio and number of images
     interface Config {
         primaryAspect: "landscape" | "portrait" | "any";
         images: Rect[];
     }
 
-    // all configs are built in landscape orientation and portrait switches left/top and right/bottom
+    // Config definition
+    // Currently have a portrait and landscape configuration for 1-9 images
     const configs: Config[][] = [
         [ // 1 image
             {
@@ -217,6 +223,7 @@
         ]
     ]
 
+    // Helper function to get the config we should be using for this data set
     function getConfigToUse(): Config
     {
         if (imageCount > 0 && imageCount <= configs.length)
@@ -234,16 +241,24 @@
     }
 </script>
 
+<!-- Bind innerWidth and innerHeight so we can pick layout based on aspect ratio -->
 <svelte:window bind:innerWidth bind:innerHeight />
 
+<!-- Collage content -->
 <div class="overlay">
+    <!-- Sanity check we can actually display the images -->
     {#if getConfigToUse().images.length > 0}
         {@const config = getConfigToUse()}
+
+        <!-- Padding config - since image positioning is percent based, we need to scale the padding to be consistent -->
         {@const scaler = isPortrait ? innerWidth / innerHeight : innerHeight / innerWidth}
         {@const xScale = isPortrait ? 1 : scaler}
         {@const yScale = isPortrait ? scaler : 1}
         {@const paddingSize = 0.3}
+
+        <!-- Layout images -->
         {#each imagesData as imageData, i}
+            <!-- Work out bounds in percent-space -->
             {@const originalLeft = config.images[i].left}
             {@const originalTop = config.images[i].top}
             {@const originalRight = config.images[i].right}
@@ -254,13 +269,17 @@
             {@const bottom = originalBottom - ((originalBottom == 0 || originalBottom == 100 ? 2 : 1) * paddingSize * yScale)}
             {@const width = right - left}
             {@const height = bottom - top}
+
+            <!-- Setup the image container with bounds - inline style since we have parameters -->
             <div class="image-button-container" style="position:absolute; left:{left}%; top:{top}%; width:{width}%; height:{height}%; min-width:{width}%; min-height:{height}%; overflow:hidden; display:flex; justify-content: center;">
+                <!-- Images can be clicked to open the gallery, so wrap in a button -->
                 <button class="image-button" onclick={() => showImageAtIndex = i}>
                     <img src={imageData.collageSrc} alt={imageData.collageSrc} />
                 </button>
             </div>
         {/each}
     {:else if imageCount > 0}
+        <!-- No valid config for this data but we have some images, so display the first fullscreen -->
         <div style="width:100%; height:100%; overflow:hidden; display:flex; justify-content: center;">
             <button class="image-button" onclick={() => showImageAtIndex = 0}>
                 <img src={imagesData[0].collageSrc} alt={imagesData[0].collageSrc} />
@@ -269,6 +288,7 @@
     {/if}
 </div>
 
+<!-- Include our gallery so when an image is asked to be shown it'll overlay -->
 <ImageGallery imagesData={imagesData} index={showImageAtIndex} onSelect={(i: number) => showImageAtIndex = i} onDismiss={() => showImageAtIndex = -1} />
 
 <style>
@@ -286,7 +306,6 @@
         height: 100%;
         object-fit: cover;
         background-color: #777;
-        /* filter: brightness(0.5); */
     }
 
     .image-button, .image-button-container {

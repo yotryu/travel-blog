@@ -1,6 +1,11 @@
+<!-- Provides a basic fullscreen overlay image gallery for our PostImage data -->
 <script lang="ts">
     import Image from './image.svelte'
+
+    // prop data
 	let { imagesData, index, onSelect, onDismiss } = $props();
+
+    // state
     let innerWidth = $state(0);
     let innerHeight = $state(0);
     let isPortrait = $derived(innerWidth <= innerHeight);
@@ -9,12 +14,12 @@
     let mainImageClass = $derived(isPortrait ? "main-image-portrait" : "main-image");
 </script>
 
+<!-- Bind innerWidth and innerHeight to allow us to react to different aspect ratios -->
 <svelte:window bind:innerWidth bind:innerHeight />
 
 {#if index >= 0}
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="overlay">
+    <!-- Setup our list of preview images, using navSrc (smallest image) -->
     <div class={listClass}>
     {#each imagesData as imageData, i}
         {@const selectedClass = i == index ? "selected": ""}
@@ -23,9 +28,13 @@
         </button>
     {/each}
     </div>
+
+    <!-- Current select image displayed as the main item -->
     <div class={mainImageClass}>
         <Image clazz="main-image-img" src={imagesData[index].src} />
     </div>
+
+    <!-- Basic close button in the top-left corner -->
     <div class="close">
         <button class="close-button" onclick={() => onDismiss()}>Close</button>
     </div>
@@ -63,7 +72,6 @@
     .close-button {
         border: none;
         background: none;
-        /* padding: 0; */
         margin: auto;
         width: 100%;
         height: 100%;
@@ -75,7 +83,6 @@
     .image-list,
     .image-list-portrait {
         position: absolute;
-        /* display: block; */
         justify-content: center;
         text-align: center;
         left: 0;
@@ -125,13 +132,11 @@
     }
 
     .image-preview {
-        /* width: 100%; */
         height: 130px;
         margin: auto;
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
-        /* object-fit: cover; */
     }
 
     .selected {
@@ -165,13 +170,4 @@
         margin: 0;
         object-fit: contain;
     }
-
-    /* img {
-        width: 100%;
-        height: 100%;
-        max-width: 100%;
-        max-height: 100%;
-        margin: auto;
-        object-fit: contain;
-    } */
 </style>

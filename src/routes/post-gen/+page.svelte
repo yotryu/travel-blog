@@ -2,23 +2,18 @@
     import ImageCollage from "$lib/image-collage.svelte";
 	import { loadScript } from "$lib/loadScript";
     import { onMount } from "svelte";
-    import type { ChangeEventHandler } from "svelte/elements";
-    import { fade, fly } from "svelte/transition";
+    import { fly } from "svelte/transition";
     import type { PageProps } from "./$types";
+    import type { Post, PostImage } from "$lib/types";
 
+    // Extends PostImage to include a source name for reference when uploading
     interface ImageRef
     {
-        data: ImageData;
+        data: PostImage;
         name: string;
     }
 
-    interface ImageData
-    {
-        src: string;
-        collageSrc: string;
-        navSrc: string;
-    }
-
+    // Alternate interface for Post, with images using ImageRef instead
     interface PostData
     {
         id: string;
@@ -30,25 +25,19 @@
         images: ImageRef[];
     }
 
-    interface SavablePostData
-    {
-        id: string;
-        collection: string;
-        date: string;
-        title: string;
-        content: string;
-        contentParagraphs: undefined;
-        images: ImageData[];
-    }
-
+    // Animation config
     const editImagesFlyData = {
         duration: 200,
         x: -100,
         opacity: 0
 	}
 
+    // prop data
     let { data }: PageProps = $props();
 
+    // state
+
+    // general layout and class state
     let innerWidth = $state(0);
     let innerHeight = $state(0);
     let isPortrait = $derived(innerWidth <= innerHeight);
@@ -56,22 +45,28 @@
     let flyData = $derived(isPortrait ? { duration: 200, y: 100, opactiy: 0 } : { duration: 200, x: 100, opacity: 0 });
     let containerClass = $derived(isPortrait ? "content-container-portrait" : "content-container");
     let edgeClass = $derived(isPortrait ? "edge-container-portrait" : "edge-container");
-    let isExpanded = $state(false);
-    let expandedClass = $derived(isExpanded ? (isPortrait ? "expanded-portrait" : (isUltrawide ? "expanded-ultrawide" : "expanded")) : "");
     let expandArrow = $derived(isPortrait ? "↑" : "←");
-
+    
+    // editing mode state
+    let isExpanded = $state(false);
     let isEditingImages = $state(false);
+    let expandedClass = $derived(isExpanded ? (isPortrait ? "expanded-portrait" : (isUltrawide ? "expanded-ultrawide" : "expanded")) : "");
 
+    // auth state
     let tokenClient: any;
     let authKey = $state("");
     let loaded = $state(false);
     let authenticated = $state(false);
+
+    // background update state
+    let isGettingPostId = $state(false);
+
+    // upload state
     let uploading = $state(false);
     let uploadCanceled = $state(false);
     let uploadProgress = $state("");
-    let isEditingContent = $state(false);
-    let isGettingPostId = $state(false);
 
+    // default post data
     let _postData: PostData = {
         id: "",
         collection: "",
@@ -81,26 +76,30 @@
         contentParagraphs: [],
         images: []
     };
+
+    // accumulated post data state
     let postData = $state(_postData);
 
 
+    // Loads image(s), adds to our post data, and generates smaller images
     function loadImage(event: Event)
     {
+        // Do nothing if we don't have valid file data
         let target = (<HTMLInputElement>event.target);
         if (!target || !target.files)
         {
             return;
         }
 
+        // Read our input files
         for (let i = 0; i < target.files.length; ++i)
         {
             let f = target.files[i];
             const reader = new FileReader();
             reader.onload = function() {
-                //uploadTestFile(new Uint8Array(reader.result));
-                //images.push(reader.result);
                 if (reader.result)
                 {
+                    // Add loaded data
                     const newData = {data: reader.result.toString(), name: f.name};
                     const imageRef: ImageRef = {
                         name: f.name,
@@ -110,21 +109,25 @@
                             navSrc: ""
                         }
                     }
-                    // TODO: resize images here
+
                     postData.images.push(imageRef);
+
+                    // generate smaller images for this ref
                     generateImages(imageRef);
                 }
             }
-            //reader.readAsArrayBuffer(event.target.files[0]);
+            
             reader.readAsDataURL(f);
         }
     }
 
+    // Remove image from post data
     function removeImage(image: ImageRef)
     {
         postData.images = postData.images.filter(i => i != image);
     }
 
+    // Move image in post data array
     function moveImageIndex(image: ImageRef, change: number)
     {
         let currentIndex = postData.images.findIndex(i => i == image);
@@ -142,6 +145,7 @@
         postData.images.splice(to, 0, postData.images.splice(currentIndex, 1)[0]);
     }
 
+    // Helper for using buttons to present input / open file dialogs
     function proxyClick(id: string)
     {
         let element = document.getElementById(id);
@@ -153,6 +157,7 @@
         element.click();
     }
 
+    // Helper for safely getting value of input elements from events
     function getInputText(element: Event)
     {
         let target = (<HTMLInputElement>element.target);
@@ -164,12 +169,14 @@
         return target.value;
     }
 
+    // Indirect setter of content so paragraphs can be generated
     function setContent(contentText: string)
     {
         postData.content = contentText;
         postData.contentParagraphs = contentText.split("\n");
     }
 
+    // Reset post data to default and clear element values
     function clearPostData()
     {
         postData = _postData;
@@ -187,6 +194,7 @@
         content.value = "";
     }
 
+    // Helper to convert data URL to buffer - used for uploading files
     async function convertDataURLToBuffer(input: string)
     {
         const blob = await fetch(input).then(r => r.blob());
@@ -195,6 +203,8 @@
         return new Uint8Array(buffer);
     }
 
+    // Native downsizer function - simply use canvas to do this without libraries.
+    // Returns data URL
     async function downsizeImage(img: HTMLImageElement, width: number)
     {
         // Create a canvas
@@ -223,6 +233,8 @@
         return canvas.toDataURL('image/jpeg');
     }
 
+    // Indirect setter for the collection to assign the post to.
+    // Requests the post ID automatically, which will be set on the post data.
     function setPostCollection(collection: string, requestPostId: boolean)
     {
         postData.collection = collection;
@@ -233,6 +245,11 @@
         }
     }
 
+    // Wrapper for gapi.client.request.
+    // Typically when this fails it'll be due to login expiring, so catch certain errors and
+    //  automatically request login again in that case.
+    // Doesn't prevent the error on the initial request (null return), but does make the 
+    //  flow recoverable without need to reload the page.
     async function gapiRequest(req: gapi.client.RequestOptions)
     {
         try
@@ -252,14 +269,19 @@
         return null;
     }
 
+    // Helper to get the gdrive folder ID of a folder at a given path, optionally creating the hierarchy if needed.
+    // Returns the folder ID if found, otherwise null
     async function requestFolderId(path: string, create: boolean = false)
     {
         let paths = path.split('/');
         let parent = 'root';
 
+        // for each item in the path, attempt to find a folder in the parent with this name
         for (let i = 0; i < paths.length; ++i)
         {
             let current = paths[i];
+
+            // make sure we only look for folders which aren't in the trash
             let query = `'${parent}' in parents and name = '${current}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
             let response = await gapiRequest({
                 'path': `/drive/v3/files?q=${encodeURI(query)}`,
@@ -300,7 +322,7 @@
                         return null;
                     }
 
-                    // try again
+                    // try again as we should be able to get a folder ID now
                     --i;
                     continue;
                 }
@@ -308,17 +330,22 @@
                 return null;
             }
 
+            // we have a valid folder, so bump parent to this and do the next iteration
             parent = resData.files[0].id;
         }
 
+        // success
         return parent;
     }
 
+    // Scans the given gdrive folder for existing files whose names are assumed to be IDs to find the next numeric value.
+    // Returns the next post ID with the default format '<collection id>-<post number>'
     async function requestNextPostId()
     {
         let path = `BlogData/Posts/${postData.collection}`;
         let defaultValue = `${postData.collection}-01`;
 
+        // grab the folder ID for this collection's posts
         let parent = await requestFolderId(path);
         if (!parent)
         {
@@ -340,7 +367,7 @@
             return defaultValue;
         }
 
-        // we should have a file list containing all files in this folder - find the "last"
+        // we should have a file list containing all files in this folder
         let resData = JSON.parse(response.body);
 
         if (!resData.files || resData.files.length == 0)
@@ -348,14 +375,17 @@
             return defaultValue;
         }
 
+        // sort the file list alphabetically to find the "last" named file (default format works with this up to 99 posts)
         resData.files.sort((a: any, b: any) => {
             return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
         });
 
+        // extract the last 2 characters before the extension of the last file
         let lastFile = resData.files[resData.files.length - 1];
         let pieces = lastFile.name.split('.');
         let lastNonExtPiece = pieces[pieces.length - 2];
         
+        // regex to get numbers only
         let lastGroupOfNumbers = lastNonExtPiece.match(/(?:\d+)(?!.*\d)/);
         let num = lastGroupOfNumbers ? lastGroupOfNumbers[0] : null;
 
@@ -364,9 +394,11 @@
             return defaultValue;
         }
 
+        // we have numbers, so return our format
         return `${postData.collection}-${String(Number(num) + 1).padStart(2, '0')}`;
     }
 
+    // Helper to get the gdrive file ID of the file at the given path
     async function requestFileId(path: string)
     {
         let parts = path.split('/');
@@ -403,6 +435,7 @@
         return resData.files[0].id;
     }
 
+    // Small wrapper around the requestNextPostId call to include state and await for UI
     async function getNextPostId()
     {
         isGettingPostId = true;
@@ -413,55 +446,80 @@
         isGettingPostId = false;
     }
 
+    // Main function to upload all the content which has been added to the post.
+    // Basic flow:
+    //  - Generate / get destination folder ID for images
+    //  - Upload each image reference's images (all sizes)
+    //    - With each success, update the final post data with the image URLs just uploaded
+    //  - Upload the json for the post data
     async function uploadAll()
     {
+        // UI state update
         uploadCanceled = false;
         uploading = true;
         uploadProgress = "";
 
+        // prepare data by taking a copy of the post data provided - we don't want to mess with the original
         let success = true;
-        let dataCopy: SavablePostData = JSON.parse(JSON.stringify(postData));
+        let dataCopy: Post = JSON.parse(JSON.stringify(postData));
         dataCopy.images = new Array(postData.images.length);
-        dataCopy.contentParagraphs = undefined;
+        dataCopy.contentParagraphs = undefined; // force paragraphs undefined since we don't want this saved
 
+        // get photo folder ID
         let folderPath = `BlogData/Photos/${dataCopy.collection}`;
-        let folderId = await requestFolderId(folderPath);
+        let folderId = await requestFolderId(folderPath, true);
 
+        // image upload
         for (let i = 0; i < postData.images.length; ++i)
         {
+            // support cancellation
             if (uploadCanceled)
             {
                 break;
             }
 
             let image = postData.images[i];
+
+            // UI update
             uploadProgress += `Uploading images for '${image.name}'... `;
 
+            // do the image upload (all sizes)
             let imageData = await uploadImages(image, folderId);
             success = !!imageData;
+
+            // UI update
             uploadProgress += (success ? "Success" : "Failed") + "<br>";
 
             if (!success || !imageData)
             {
+                // if something failed, fall out
                 break;
             }
 
+            // success, so update our image data with the returned URL data
             dataCopy.images[i] = imageData;
         }
 
+        // prepare json upload
         folderPath = `BlogData/Posts/${dataCopy.collection}`;
         let jsonPath = `${folderPath}/${dataCopy.id}.json`;
         if (success && !uploadCanceled)
         {
+            // only do json upload if all good up to this point
             let json = JSON.stringify(dataCopy);
             let encoder = new TextEncoder();
 
+            // UI update
             uploadProgress += `Uploading '${jsonPath}'... `;
 
+            // do json upload
             let success = await uploadFile(jsonPath, null, encoder.encode(json));
+
+            // UI update
             uploadProgress += success ? "Success" : "Failed";
         }
 
+        // finished
         if (uploadCanceled)
         {
             uploadProgress += "Cancelled";
@@ -470,25 +528,29 @@
         uploading = false;
     }
 
+    // Handles uploading of all image variants in ImageRef data.
+    // Returns a new array containing PostImage URLs pointing to the upload location instead of local data URLs
     async function uploadImages(image: ImageRef, folderId: string | null)
     {
-        let imageData: ImageData = { src: "", collageSrc: "", navSrc: "" };
+        let imageData: PostImage = { src: "", collageSrc: "", navSrc: "" };
         let nameComponents = image.name.split('.');
         let basePath = nameComponents[0];
         let folderPath = `BlogData/Photos/${postData.collection}`;
 
+        // ensure folder exists / get folder ID
         if (!folderId)
         {
             folderId = await requestFolderId(folderPath, true);
         }
 
-        // original
+        // upload original
         let buffer = await convertDataURLToBuffer(image.data.src);
         let path = `${folderPath}/${image.name}`;
         let fileId = await uploadFile(path, folderId, buffer);
 
         if (fileId)
         {
+            // set new URL
             imageData.src = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
         }
         else
@@ -496,7 +558,7 @@
             return null;
         }
 
-        // collageSrc
+        // upload collageSrc
         let newPath = basePath + "_w1000" + "." + nameComponents[1];
         path = `BlogData/Photos/${postData.collection}/${newPath}`;
         buffer = await convertDataURLToBuffer(image.data.collageSrc);
@@ -504,6 +566,7 @@
 
         if (fileId)
         {
+            // set new URL
             imageData.collageSrc = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
         }
         else
@@ -511,7 +574,7 @@
             return null;
         }
 
-        // navSrc
+        // upload navSrc
         newPath = basePath + "_w200" + "." + nameComponents[1];
         path = `BlogData/Photos/${postData.collection}/${newPath}`;
         buffer = await convertDataURLToBuffer(image.data.navSrc);
@@ -519,6 +582,7 @@
 
         if (fileId)
         {
+            // set new URL
             imageData.navSrc = `https://lh3.googleusercontent.com/d/${fileId}?authuser=0`;
         }
         else
@@ -529,6 +593,8 @@
         return imageData;
     }
 
+    // Simple function to load a given image in, wait for the load to finish, then perform the downsize of that image.
+    // Updates the post data directly.
     async function generateImages(image: ImageRef)
     {
         const widths = {
@@ -565,8 +631,12 @@
         }
     }
 
+    // Generic wrapper function for uploading an arbitrary file (buffer data) to a given path.
+    // Optionally provided folderId simply speeds up the process by not needing to get the folder ID each time.
+    // Returns the gdrive file ID of the uploaded file.
     async function uploadFile(path: string, folderId: string | null, buffer: Uint8Array<ArrayBuffer>)
     {
+        // check if we can upload
         let existingFileId = await requestFileId(path);
         if (existingFileId)
         {
@@ -574,6 +644,7 @@
             return existingFileId;
         }
 
+        // get destination folder ID as needed
         let comps = path.split('/');
         let name = comps[comps.length - 1];
 
@@ -583,12 +654,14 @@
             folderId = await requestFolderId(folderPath, true);
         }
 
+        // upload as resumable to provide metadata and support for larger files
         let metadata = {
             "name": name,
             "parents": [ folderId ]
         };
         let dataStr = JSON.stringify(metadata);
 
+        // request upload information
         let response = await gapiRequest({
           'path': '/upload/drive/v3/files?uploadType=resumable',
           'method': 'POST',
@@ -607,10 +680,13 @@
 
         // this copy of the data silences typescript errors since the API says the headers object is an array...
         let headers = JSON.parse(JSON.stringify(response.headers));
+
+        // extract the upload URL we send the data to
         let uploadURL = headers["location"];
 
         try
         {
+            // upload the actual file data now.
             // this will fail in localhost because of CORS, so for now catch the error and move on
             // - the request to get the file ID below will kind of validate this anyway... kind of
             let response = await fetch(uploadURL, {
@@ -631,18 +707,20 @@
         catch
         {}
 
+        // finally grab the file ID of the newly created file, and validate it is available
         existingFileId = await requestFileId(path);
 
         return existingFileId;
     }
 
+    // Basic init of gapi.client with callbacks and state updates
     async function initializeGapiClient()
     {
         await gapi.client.init({
             apiKey: authKey
         });
 
-        // google is loaded dynamically and attempts to include the client library resulted in failures,
+        // google is loaded dynamically, and attempts to include the client library resulted in failures,
         // so disabling the error for now as it is an offline only issue.
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
@@ -656,14 +734,15 @@
                 }
 
                 authenticated = true;
-
-
             }
         });
 
         loaded = true;
     };
 
+    // Loads a file from the given event / input and uses the content as the apiKey to init gapi with.
+    // Stores the key in local storage so future loads of the page don't need to explicitly provide the file.
+    // This is simply a way to not store apiKey in source control, it's not intended to be robust security.
     function initWithAuthKeyFile(event: Event)
     {
         let target = <HTMLInputElement>event.target;
@@ -685,12 +764,14 @@
         reader.readAsText(file);
     }
 
+    // Clear locally cached apiKey - allows registering of a new one
     function removeAPIKey()
     {
         localStorage.removeItem("apiKey");
         authKey = "";
     }
 
+    // Basic login wrapper for gapi, avoiding constent screen for expired tokens
     function doLogin()
     {
         if (gapi.client.getToken() === null)
@@ -707,9 +788,11 @@
     };
 
     onMount(async () => {
+        // load and wait for google APIs
         await loadScript("https://apis.google.com/js/api.js");
         await loadScript("https://accounts.google.com/gsi/client");
 
+        // see if we can auto-init with our saved key
         let key = localStorage.getItem("apiKey");
         if (key)
         {
@@ -722,10 +805,17 @@
 <svelte:window bind:innerWidth bind:innerHeight />
 
 {#if authenticated}
+    <!-- Main post gen content -->
+    <!-- Effectively mirrors the design of a normal post (routes/post/[slug]/page.svelte) -->
+    <!-- but with input fields, image layout editing support, and uploads -->
 
+    <!-- Include the image collage with chosen post images -->
     <ImageCollage imagesData={postData.images.map(i => i.data)}/>
 
+    <!-- Header includes: collection the post belongs to, post ID, post title, date, and image editing buttons -->
     <div class="header">
+        <!-- Collection input / dropdown -->
+        <!-- Changes to this value generate a new post ID when focus is lost -->
         <input class="collection-input" id="inputCollection" list="collectionList" placeholder="Collection" 
             onchangecapture={(e) => e.target != document.activeElement ? setPostCollection(getInputText(e), true) : {}}
             oninput={(e: any) => !e.inputType || e.inputType == "insertReplacementText" ? setPostCollection(getInputText(e), true) : {}}/>
@@ -734,80 +824,108 @@
                 <option value={collection.id}></option>
             {/each}
         </datalist>
+
+        <!-- Post ID - auto-generated and immutable -->
         {#if isGettingPostId}
             <span class="post-id">-- Getting post ID --</span>
         {:else}
             <span class="post-id">{postData.id}</span>
         {/if}
+
+        <!-- Post title -->
         <div>
             <input class="title-input" id="inputTitle" placeholder="Title" size="35" onchangecapture={(e) => postData.title = getInputText(e)}/>
         </div>
+
+        <!-- Post date -->
         <div>
             <input class="small-input" id="inputDate" placeholder="Date" onchangecapture={(e) => postData.date = getInputText(e)}/>
         </div>
+
+        <!-- Image edit button -->
         <div>
             <button class="add-button" onclick={() => isEditingImages = true}>Edit Images...</button>
         </div>
+
+        <!-- Clear post data button -->
         <div class="small-vertical-padding">
             <button class="add-button red-button" onclick={() => clearPostData()}>Clear Post Data</button>
         </div>
     </div>
 
     {#if isExpanded}
+    <!-- Post text content -->
     <div class="overlay" >
+
+        <!-- Click outside to hide -->
         <div class="overlay" onclickcapture={() => isExpanded = false}>
         </div>
+
+        <!-- Simple textarea for the post content -->
         <div transition:fly="{flyData}" class="{containerClass} {expandedClass}">
             <textarea class="content-input" id="contentTextArea" placeholder="Add post content..." 
                 onchangecapture={(e) => {
-                    isEditingContent = e.target == document.activeElement;
                     setContent(getInputText(e));
                 }}>{postData.content}</textarea>
+
+            <!-- Also includes the Upload All button - is deliberately "hidden" in here to avoid misclicking -->
             <div class="content-bottom">
                 <button class="add-button" onclick={() => uploadAll()}>Upload All</button>
             </div>
         </div>
     </div>
     {:else}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div transition:fly="{flyData}" class="{edgeClass}" onclick={() => isExpanded = true}>{expandArrow}</div>
+    <!-- Non-expanded button to expand content -->
+    <button transition:fly="{flyData}" class="{edgeClass}" onclick={() => isExpanded = true}>{expandArrow}</button>
     {/if}
 
     <!-- Image editing popout -->
     {#if isEditingImages}
-    <div class="overlay" onclickcapture={() => isEditingImages = false}></div>
-    <div class="image-edit-popout" transition:fly="{editImagesFlyData}">
-        <div class="small-margins">
-            <button class="add-button fill-width" onclick={() => proxyClick("chooseImages")}>Add Images...</button>
-            <input id="chooseImages" type="file" accept="image/*" multiple onchange={(evt) => loadImage(evt)} style="display:none;"/>
-        </div>
-        <div class="small-margins bottom-line"></div>
-        <div class="small-margins">
-        {#each postData.images as image}
-            <div class="image-preview-container">
-                <img class="image-preview" src={image.data.navSrc} alt={image.name}/>
-                <div class="overlay">
-                    <div class="right-align">
-                        <div>
-                            <button class="image-preview-button" onclick={() => moveImageIndex(image, -1)}>↑</button>
+        <!-- Click outside to close -->
+        <div class="overlay" onclickcapture={() => isEditingImages = false}></div>
+        
+        <div class="image-edit-popout" transition:fly="{editImagesFlyData}">
+            <!-- Add images button (input for open file dialog) -->
+            <div class="small-margins">
+                <button class="add-button fill-width" onclick={() => proxyClick("chooseImages")}>Add Images...</button>
+                <input id="chooseImages" type="file" accept="image/*" multiple onchange={(evt) => loadImage(evt)} style="display:none;"/>
+            </div>
+
+            <!-- Divider to separate flexible content -->
+            <div class="small-margins bottom-line"></div>
+            <div class="small-margins">
+
+            <!-- Image layout editing -->
+            {#each postData.images as image}
+                <div class="image-preview-container">
+                    <img class="image-preview" src={image.data.navSrc} alt={image.name}/>
+                    <div class="overlay">
+                        <div class="right-align">
+                            <!-- Top-right button for moving the image index -1 -->
+                            <div>
+                                <button class="image-preview-button" onclick={() => moveImageIndex(image, -1)}>↑</button>
+                            </div>
+
+                            <!-- Bottom-right button for moving the image index +1 -->
+                            <div class="bottom-right">
+                                <button class="image-preview-button" onclick={() => moveImageIndex(image, 1)}>↓</button>
+                            </div>
                         </div>
-                        <div class="bottom-right">
-                            <button class="image-preview-button" onclick={() => moveImageIndex(image, 1)}>↓</button>
+
+                        <!-- Button for removing the image from the post -->
+                        <div class="left-align">
+                            <button class="image-preview-button red-button" onclick={() => removeImage(image)}>-</button>
                         </div>
-                    </div>
-                    <div class="left-align">
-                        <button class="image-preview-button red-button" onclick={() => removeImage(image)}>-</button>
                     </div>
                 </div>
+                <div class="small-margins"></div>
+            {/each}
             </div>
-            <div class="small-margins"></div>
-        {/each}
         </div>
-    </div>
     {/if}
 
-    <!-- Uploading -->
+    <!-- Uploading / overlay showing progress -->
+    <!-- Is a simple dump of "uploadProgress" string into the element -->
     {#if uploading || uploadProgress}
     <div class="overlay-darken center-parent">
         <div class="center-login">
@@ -818,9 +936,11 @@
                     {#if uploadCanceled}
                         <p>Cancelling...</p>
                     {:else}
+                        <!-- Cancel button -->
                         <button class="add-button red-button" onclick={() => uploadCanceled = true }>Cancel</button>
                     {/if}
                 {:else}
+                    <!-- Done button (once finished) -->
                     <button class="add-button" onclick={() => { uploading = false; uploadProgress = ""; }}>Done</button>
                 {/if}
             </div>
@@ -833,18 +953,23 @@
     <div class="overlay-darken center-parent">
         <div class="center-login">
             {#if !authKey}
+                <!-- Need an auth key - very first thing we'll likely see in a new env -->
                 <button class="add-button" onclick={() => proxyClick("chooseAuthKeyFile")}>Load API Key</button>
                 <input id="chooseAuthKeyFile" type="file" accept=".txt" multiple onchange={(evt) => initWithAuthKeyFile(evt)} style="display:none;"/>
             {:else}
                 {#if loaded}
+                    <!-- Everything is loaded, so now we can present login options -->
                     <h1 class="title">Login</h1>
                     <div class="small-padding">
                         <button class="add-button" onclick={() => doLogin()}>Authenticate</button>
                     </div>
+
+                    <!-- Button to remove the cached api key -->
                     <div class="small-padding">
                         <button class="add-button red-button" onclick={() => removeAPIKey()}>Remove API Key</button>
                     </div>
                 {:else}
+                    <!-- Not loaded yet (api scripts loading) -->
                     <h1 class="title">Loading...</h1>
                 {/if}
             {/if}
@@ -1061,6 +1186,7 @@
         scrollbar-width: none;
         background: #111E;
         border-radius: 10px 0 0 10px;
+        border: none;
         transition: ease-out 200ms;
     }
 

@@ -1,14 +1,17 @@
+<!-- Component to manage showing a loading spinner while loading an image, then switch to the image when complete -->
 <script lang="ts">
     import {onMount} from 'svelte';
 
     let { src, clazz } = $props();
 
+    // Image container and loading state
     let image = new Image();
 
     let loading = $state(false);
     let loaded = $state(false);
     let failed = $state(false);
 
+    // Using an effect to track changes since we are applying src to image.src, and image isn't stateful
     $effect(() => {
         if (image.src == src)
         {
@@ -21,6 +24,7 @@
         failed = false;
     });
 
+    // Setup callbacks and base state
     onMount(() => {
         image.onload = () => {
             loading = false;
@@ -36,6 +40,7 @@
     });
 </script>
 
+<!-- Basic logic for showing the different states of loading, loaded, or failed -->
 {#if loaded}
 	<img class={clazz} src={src} alt={src} />
 {:else if failed}
